@@ -8,6 +8,17 @@ class Bit:
         else:
             self.state = state
 
+    def __str__(self):
+        return self.state
+
+    def _test(self):
+        a = Bit('1')
+        b = Bit('0')
+        c = Bit('z')
+        d = Bit('x')
+        e = Bit('2')
+
+
 class BitVector:
 
     def __init__(self, length, states = None):
@@ -19,6 +30,9 @@ class BitVector:
 
     def __str__(self):
         return ''.join(list(reversed([i.state for i in self.states])))
+
+    def bit(self, index):
+        return self.states(index)
 
     def to_unsigned(self):
         return int(''.join(list(reversed([i.state for i in self.states]))), 2)
@@ -75,12 +89,27 @@ class BitVector:
 
         return BitVector(self.length, '0' * (self.length - len(s)) + s)
 
+    def __eq__(self, b):
+        if self.length != b.length:
+            raise ArithmeticError("Can't compare bitvectors of different length")
+            return None
+        return self.states == b.states
 
-a = BitVector(4, '1101')
-b = BitVector(4, '0001')
-c = a + b
-d = a ^ b
-e = a & b
-print c
-print d
-print e
+    def __ne__(self, b):
+        if self.length != b.length:
+            raise ArithmeticError("Can't compare bitvectors of different length")
+            return None
+        return self.states != b.states
+
+    @staticmethod
+    def _test():
+        a = BitVector(4, '1101')
+        b = BitVector(4, '0001')
+        c = a + b
+        d = a ^ b
+        e = a & b
+        assert(c == '1110')
+        assert(d == '1100')
+        assert(e == '0001')
+
+BitVector._test()
