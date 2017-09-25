@@ -1,0 +1,25 @@
+import libraryname1.componentname;
+import libraryname2.*;
+
+component Foo
+{
+	int genericintfield;
+	vec genericvecfield(bitwidth);
+
+	port
+	{
+		input vec multibitin(bitwidth);
+		output vec singlebitout(bitwidth);
+	}
+
+	arch
+	{
+		signal int integersignal;
+		signal vec vectorsignal;
+
+		Adder addinst
+		(
+			
+		);
+	}
+}
