@@ -1,25 +1,58 @@
-import libraryname1.componentname;
-import libraryname2.*;
+/*
+Scoping: any variables or signals declared within a {} block are visible only within that scope and any sub-blocks it contains.
+Privacy: genericFields are set when the an instance of the component is created. Only members of the port block are accessible by supercomponents.
+*/
 
-component Foo
+component CompName
 {
-	int genericintfield;
-	vec genericvecfield(bitwidth);
+	//comment
+	type genericField1;
+	type genericField2;
 
 	port
 	{
-		input vec multibitin(bitwidth);
-		output vec singlebitout(bitwidth);
+		input type identifier;
+		output type identifier;
 	}
 
-	arch
+	optionalArchType arch //optionalArchType determines whether arch block will be for verification or implementation
 	{
-		signal int integersignal;
-		signal vec vectorsignal;
+		signal type identifier; //type can be primitive (int, vec, or bool) or user-defined
+		process (sensitivitylist)
+		{
+			//variables are updated immediately; signals are updated some time after execution of the process
+			//that's VHDL for ya; it actually makes sense for essentially all applications.
+			variable type identifier;
+			variableIdentifier = variableExpression; //variable expression can be composed of unary, binary, and ternary operations on VARIABLES
+			signalIdentifier <= signalExpression; //signal expression can be composed of unary, binary, and ternary operations on SIGNALS 
+		}
 
-		Adder addinst
-		(
-			
-		);
+		Comptype compidentifier = new Comptype(genericsAssignmentList);
+
+		connect optionalConnectBlockName
+		{
+			compidentifier.outport => compidentifier.inport;
+		}
+
+		connect optionalConnectBlockName
+		{
+			compidentifier.outport => compidentifier.inport;
+		}
+
+		signalIdentifier <= signalIdentifier binOperator signalIdentifier; //operator can be *, /, +, -, and, or, nand, nor, xor, xnor, etc. binaryOperators only work on primitive types
+		signalIdentifier <= unaryOperator bitExtend(signalIdentifier, endwidth); //bitExtend can be signed or unsigned
+		signalIdentifier <= (booleanExpression) ? expression1 : expression2; //boolean expression can be a < b, a > b, a <= b, etc. All comparison operations are signed
+		//booleanExpressions can include boolean operators (e.g. !, &&, ||) on bool types or on vec types (the vec type is cast to a bool, if its value is 0, then the cast boolean value is false, otherwise it's true)
+
+		generate if(genericBooleanExpression)
+		{
+			//component instantiation and signal assignment within this block will only be executed if the genericBooleanExpression evaluates true
+			//the genericBooleanExpression is a boolean expression that uses only generic fields, and therefore can be evaluated at compile-time
+		}
+
+		generate for(int index; booleanStopExpression; incdecExpression)
+		{
+			//similar to generate if, but uses a for loop and has an index variable that is visible within the scope of the loops
+		}
 	}
 }
