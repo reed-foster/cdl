@@ -8,28 +8,25 @@ CDL is a high-level hardware description language that compiles to VHDL. It is s
 `output` - an output port  
 `inout` - a tristate port, like VHDL's `inout`  
 
-`component` - similar to "structural" VHDL, most commonly used "component", can contain other components  
-`basecomponent` - similar to "data-flow" VHDL, defined by a single function, used by components  
+`component` - similar to a VHDL entity, contains a port declaration and architecture specification  
 
 `port` - declaration of a component's inputs and outputs  
 `components` - declaration of a components subcomponents  
 `arch` - declaration of a component's architecture  
-`func` - declaration of a basecomponent's functionality  
 `test` - declaration of stimuli and assertion statements for verification of component functionality
-
-`connect` - connects components to each other  
+ 
 `tristate` - connect an inout port to driver, drivee, and selector  
-`drive` - connects a subcomponent input or component output  
 
-`function` - defines a function that is run at compile-time  
+`function` - defines a function that is run at compile-time (typically defined outside of component)  
+`type` - allows for user created types
 
 ## Utilities
 `import` - used to import libraries of components, basecomponents, and functions  
 `statemachine` - used to define a state machine  
 `pipeline` - simplifies creation of pipelines  
 
-## Built-in `basecomponents`
-Synchronous built-in components are partially implemented in VHDL  
+## Built-ins
+Built-in components are partially implemented in VHDL and/or CDL  
 `AND` - bitwise and  
 `OR` - bitwise or  
 `NAND` - bitwise nand  

@@ -1,0 +1,23 @@
+component_delcaration := component identifier { component_body }
+component_body := port { port_body } arch [identifier] { arch_body }
+
+alpha := ?regex([a-zA-Z])?
+digit := ?regex([0-9])?
+dec_integer := ("0" | [-] ?regex([1-9])?) (["_"] digit)*
+hex_integer := "0x" (["_"] (digit | ?regex([a-fA-F])?))*
+bin_integer := "0b" ("0" | "1" | "_")*
+bin_vec := "\"" ("0" | "1" | "_")* "\""
+hex_vec := "\"" (digit | ?regex([a-fA-F])?) | "_")*
+identifier := alpha (alpha | digit | "_")*
+
+mult_op := "*" | "/" | "%"
+add_op := "+" | "-"
+rel_op := ">" | "<" | ">=" | "<=" | "==" | "!="
+
+booleanexpression := expression relop expression
+
+expression := booleanexpression "?" expression ":" expression | term (add_op term)*
+term := factor (mult_op factor)*
+factor := "-" factor | literal | "(" expression ")" | identifier 
+
+signal_assignment := identifier <= expression
