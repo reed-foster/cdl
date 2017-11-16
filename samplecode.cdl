@@ -15,7 +15,7 @@ component CompName
 		output type identifier;
 	}
 
-	optionalArchType arch //optionalArchType determines whether arch block will be for verification or implementation
+	optionalArchType arch //optionalArchType determines whether arch block will be for verification or implementation, default is implementation
 	{
 		signal type identifier; //type can be primitive (int, vec, or bool) or user-defined
 		process (sensitivitylist)
@@ -29,12 +29,7 @@ component CompName
 
 		Comptype compidentifier = new Comptype(genericsAssignmentList);
 
-		connect optionalConnectBlockName
-		{
-			compidentifier.outport => compidentifier.inport;
-		}
-
-		connect optionalConnectBlockName
+		connect
 		{
 			compidentifier.outport => compidentifier.inport;
 		}
