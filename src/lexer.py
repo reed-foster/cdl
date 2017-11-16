@@ -1,37 +1,12 @@
 ID, SIGASSIGN, VARASSIGN = ('ID', 'SIGASSIGN', 'VARASSIGN')
-INT, VEC, BOOL = ('INT', 'VEC', 'BOOL')
+DECINTCONST, BININTCONST, HEXINTCONST, BINVECCONST, HEXVECCONST, BOOLCONST = ('DECINTCONST', 'BININTCONST', 'HEXINTCONST', 'BINVECCONST', 'HEXVECCONST', 'BOOLCONST')
 ADD, SUB, MUL, DIV, MOD, EXP = ('ADD', 'SUB', 'MUL', 'DIV', 'MOD', 'EXP')
-BOOLEANAND, BOOLEANOR, BOOLEANXOR, BOOLEANNOT = ('BOOLEANAND', 'BOOLEANOR', 'BOOLEANXOR', 'BOOLEANNOT')
+AND, OR, XOR, NOT = ('AND', 'OR', 'XOR', 'NOT')
 LPAREN, RPAREN, LBRACE, RBRACE = ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE')
+TERNQ, TERNSEP = ('TERNQ', 'TERNSEP')
 LT, GT, LE, GE, EQ, NE = ('LT', 'GT', 'LE', 'GE', 'EQ', 'NE')
-EOF = 'EOF'
-
-RESERVED_KEYWORDS = {
-    'COMPONENT' : Token('COMPONENT', 'COMPONENT')
-    'PORT' : Token('PORT','PORT'),
-    'ARCH' : Token('ARCH','ARCH'),
-    'CONNECT' : Token('CONNECT','CONNECT'),
-    'GENERATE' : Token('GENERATE','GENERATE'),
-    'SIGNAL' : Token('SIGNAL','SIGNAL'),
-    'VARIABLE' : Token('VARIABLE','VARIABLE'),
-    'NEW' : Token('NEW','NEW'),
-    'THIS' : Token('THIS','THIS'),
-    'IF' : Token('IF','IF'),
-    'FOR' : Token('FOR','FOR'),
-    'WHILE' : Token('WHILE','WHILE'),
-    'INT' : Token('INT','INT'),
-    'VEC' : Token('VEC','VEC'),
-    'BOOL' : Token('BOOL','BOOL'),
-    'TRUE' : Token('TRUE', 'TRUE'),
-    'FALSE' : Token('FALSE', 'FALSE'),
-    'AND' : Token('AND', 'AND'),
-    'OR' : Token('OR', 'OR'),
-    'NOT' : Token('NOT', 'NOT'),
-    'NAND' : Token('NAND', 'NAND'),
-    'NOR' : Token('NOR', 'NOR'),
-    'XOR' : Token('XOR', 'XOR'),
-    'XNOR' : Token('XNOR', 'XNOR'),
-}
+EOF, EOL = ('EOF', 'EOL')
+COMMA = 'COMMA'
 
 BOOLSCOPE, OTHERSCOPE = ('BOOLSCOPE', 'OTHERSCOPE')
 
@@ -42,6 +17,35 @@ class Token():
 
     def __str__(self):
         return 'Token({type}, "{value}")'.format(type=self.type, value=self.value.__str__())
+
+
+RESERVED_KEYWORDS = {
+    'component' : Token('COMPONENT', 'component'),
+    'port' : Token('PORT','port'),
+    'arch' : Token('ARCH','arch'),
+    'connect' : Token('CONNECT','connect'),
+    'generate' : Token('GENERATE','generate'),
+    'process' : Token('PROCESS', 'process'),
+    'signal' : Token('SIGNAL','signal'),
+    'variable' : Token('VARIABLE','variable'),
+    'new' : Token('NEW','new'),
+    'this' : Token('THIS','this'),
+    'if' : Token('IF','if'),
+    'for' : Token('FOR','for'),
+    'while' : Token('WHILE','while'),
+    'int' : Token('INT','int'),
+    'vec' : Token('VEC','vec'),
+    'bool' : Token('BOOL','bool'),
+    'true' : Token(BOOLCONST, 'true'),
+    'false' : Token(BOOLCONST, 'false'),
+    'and' : Token('AND', 'and'),
+    'or' : Token('OR', 'or'),
+    'not' : Token('NOT', 'not'),
+    'nand' : Token('NAND', 'nand'),
+    'nor' : Token('NOR', 'nor'),
+    'xor' : Token('XOR', 'xor'),
+    'xnor' : Token('XNOR', 'xnor'),
+}
 
 class Lexer():
     def __init__(self, text):
@@ -76,6 +80,7 @@ class Lexer():
         while self.current_char is not None and (self.current_char.isdigit() or self.current_char in 'ABCDEabcdef'):
             result += self.current_char
             self.advance()
+        self.advance()
         return result
 
     def binVector(self):
@@ -83,6 +88,7 @@ class Lexer():
         while self.current_char is not None and self.current_char in '01':
             result += self.current_char
             self.advance()
+        self.advance()
         return result
 
     def decInteger(self):
@@ -90,21 +96,21 @@ class Lexer():
         while self.current_char is not None and self.current_char.isdigit():
             result += self.current_char
             self.advance()
-        return int(result)
+        return result
 
     def binInteger(self):
         result = ''
         while self.current_char is not None and self.current_char in '01':
             result += self.current_char
             self.advance()
-        return int(result, 2)
+        return result
 
     def hexInteger(self):
         result = ''
         while self.current_char is not None and (self.current_char.isdigit() or self.current_char in 'ABCDEFabcdef'):
             result += self.current_char
             self.advance()
-        return int(result, 16)
+        return result
 
     def id(self):
         result = ''
@@ -125,27 +131,41 @@ class Lexer():
                 self.skipWhiteSpace()
                 continue
 
+            if self.current_char == ';':
+                self.advance()
+                return Token(EOL, ';')
+
+            if self.current_char == ',':
+                self.advance()
+                return Token(COMMA, ',')
+
             if self.current_char == '/' and self.peek() == '/':
-                return self.comment()
+                self.comment()
+                self.skipWhiteSpace()
+                continue
 
             if self.current_char == 'x' and self.peek() == '"':
                 self.advance()
                 self.advance()
-                return Token(VEC, self.hexVector())
+                return Token(HEXVECCONST, self.hexVector())
 
             if self.current_char == '"':
                 self.advance()
-                return Token(VEC, self.binVector())
+                return Token(BINVECCONST, self.binVector())
 
             if self.current_char.isalpha():
                 return self.id()
 
             if self.current_char.isdigit():
                 if self.current_char == '0' and self.peek() == 'x':
-                    return Token(INT, self.hexInteger())
+                    self.advance()
+                    self.advance()
+                    return Token(HEXINTCONST, self.hexInteger())
                 if self.current_char == '0' and self.peek() == 'b':
-                    return Token(INT, self.binInteger())
-                return Token(INT, self.decInteger())
+                    self.advance()
+                    self.advance()
+                    return Token(BININTCONST, self.binInteger())
+                return Token(DECINTCONST, self.decInteger())
 
             # Tokenizing '<=' based on context (either relational operator - boolean context, or signal assignment - all other contexts)
             if self.current_char == '<' and self.peek() == '=':
@@ -160,6 +180,13 @@ class Lexer():
                 self.advance()
                 self.advance()
                 return Token(VARASSIGN, ':=')
+
+            if self.current_char == '?':
+                self.advance()
+                return Token(TURNQ, '?')
+            if self.current_char == ':':
+                self.advance()
+                return Token(TURNSEP, ':')
 
             # Tokenize relational operators
             if self.current_char == '>' and self.peek() == '=':
@@ -187,7 +214,7 @@ class Lexer():
             if self.current_char == '-':
                 self.advance()
                 return Token(SUB, '-')
-            if self.current_char == '*' and self.peek() = '*':
+            if self.current_char == '*' and self.peek() == '*':
                 self.advance()
                 self.advance()
                 return Token(EXP, '**')
@@ -199,63 +226,38 @@ class Lexer():
                 return Token(DIV, '/')
             if self.current_char == '%':
                 self.advance()
-                return Token(MOD, '%')          
+                return Token(MOD, '%')     
+
+            if self.current_char == '&':
+                self.advance()
+                return Token(AND, '&')
+            if self.current_char == '|':
+                self.advance()
+                return Token(OR, '|')
+            if self.current_char == '^':
+                self.advance()
+                return Token(XOR, '^')
+            if self.current_char == '!':
+                self.advance()
+                return Token(NOT, '!')
+
+            if self.current_char == '(':
+                self.advance()
+                return Token(LPAREN, '(')
+            if self.current_char == ')':
+                self.advance()
+                return Token(RPAREN, ')')
+            if self.current_char == '{':
+                self.advance()
+                return Token(LBRACE, '{')
+            if self.current_char == '}':
+                self.advance()
+                return Token(RBRACE, '}')
 
             self.error()
 
         return Token(EOF, None)
 
-class AST():
-    pass
-
-class TernaryOp(AST):
-    def __init__(self, boolean, op, left, right):
-        self.boolean = boolean
-        self.token = self.op = op
-        self.left = left
-        self.right = right
-
-class BinaryOp(AST):
-    def __init__(self, left, op, right):
-        self.left = left
-        self.token = self.op = op
-        self.right = right
-
-class UnaryOp(AST):
-    def __init__(self, op, right):
-        self.token = self.op = op
-        self.right = right
-
-class Assign(AST):
-    def __init__(self, left, op, right):
-        self.left = left
-        self.token = self.op = op
-        self.right = right
-
-class Var(AST):
-    def __init__(self, token):
-
-
-class Parser():
-
-    def __init__(self, lexer):
-        self.lexer = lexer
-        self.current_token = self.lexer.getNextToken()
-
-    def error(self):
-        raise Exception('Syntax Error')
-
-    def eat(self, token_type):
-        if self.current_token.type = token_type:
-            self.current_token = self.lexer.getNextToken()
-        else:
-            self.error()
-
-    def factor(self):
-        token = self.current_token
-        if token.type == SUB:
-            self.eat(SUB)
-            node = UnaryOp(token, self.factor())
-            return node
-        if token.type in (INT, VEC, BOOL):
-            
+lex = Lexer('hi <= x"12ffab"; lol := ( 0b1011); {banana <= true};')
+for i in range(20):
+    print(lex.getNextToken())
