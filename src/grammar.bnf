@@ -1,5 +1,26 @@
 component_delcaration := component identifier { component_body }
-component_body := port { port_body } arch [identifier] { arch_body }
+component_body := [generic_body] port { port_body } [archtype] arch { arch_body }
+
+generic_body := (type identifier eol)*
+
+port_body := (("input" | "output") type identifier eol)*
+
+arch_body := (signal_declaration | signal_assignment | component_instantiation | connect_block | generate_block | process_block)*
+
+signal_declaration := "signal" type identifier eol
+
+component_instantiation := identifier identifier "=" new identifier "(" generic_assignment_list ")" eol
+generic_assignment_list := [(identifier "=" constant ",")*] identifier "=" constant
+
+connect_block := connect { connect_body }
+connect_body := ( (expression | identifier) => (concatenation | identifier) eol)*
+
+generate_block := generate if "(" booleanexpression ")" { arch_body }
+
+process_block := process ([(identifier ",")*] identifier) { process_body }
+process_body := (variable_declaration | variable_assignment | signal_assignment)*
+variable_declaration := "variable" type identifier eol
+variable_assignment := identifier = expression eol
 
 alpha := ?regex([a-zA-Z])?
 digit := ?regex([0-9])?
@@ -8,16 +29,61 @@ hex_integer := "0x" (["_"] (digit | ?regex([a-fA-F])?))*
 bin_integer := "0b" ("0" | "1" | "_")*
 bin_vec := "\"" ("0" | "1" | "_")* "\""
 hex_vec := "\"" (digit | ?regex([a-fA-F])?) | "_")*
-identifier := alpha (alpha | digit | "_")*
+constant := dec_integer | hex_integer | bin_integer | bin_vec | hex_vec
+identifier := (identifier "." identifier) | (alpha (alpha | digit | "_")*)
 
 mult_op := "*" | "/" | "%"
 add_op := "+" | "-"
 rel_op := ">" | "<" | ">=" | "<=" | "==" | "!="
 
-booleanexpression := expression relop expression
+booleanexpression := expression relop expression | booleanterm ()
 
 expression := booleanexpression "?" expression ":" expression | term (add_op term)*
 term := factor (mult_op factor)*
 factor := "-" factor | literal | "(" expression ")" | identifier 
 
-signal_assignment := identifier <= expression
+signal_assignment := identifier <= expression eol
+
+
+//Token List
+
+comment := "//"
+
+lbrace := "{"
+rbrace := "}"
+lparen := "("
+rparen := ")"
+
+eol := ";"
+
+comma := ','
+
+sigassign := "<="
+varassign := ":="
+
+ge := ">="
+gt := ">"
+le := "<="
+lt := "<"
+eq := "=="
+ne := "!="
+
+add := "+"
+sub := "-"
+exp := "**"
+mul := "*"
+div := "/"
+mod := "%"
+
+//boolean operators
+and := "&"
+or := "|"
+xor := "^"
+not := "!"
+
+dec_integer := ("0" | [-] ?regex([1-9])?) (["_"] digit)*
+hex_integer := "0x" (["_"] (digit | ?regex([a-fA-F])?))*
+bin_integer := "0b" ("0" | "1" | "_")*
+
+bin_vec := "\"" ("0" | "1" | "_")* "\""
+hex_vec := "x\"" (digit | ?regex([a-fA-F])?) | "_")*
