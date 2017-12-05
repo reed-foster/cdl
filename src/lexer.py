@@ -1,4 +1,6 @@
-ID, SIGASSIGN, VARASSIGN = ('ID', 'SIGASSIGN', 'VARASSIGN')
+ID, SIGASSIGN, VARASSIGN, COMPASSIGN = ('ID', 'SIGASSIGN', 'VARASSIGN', 'COMPASSIGN')
+TYPE, BOOLCONST, BITWISEOP, ARCHTYPE, PORTDIR = ('TYPE', 'BOOLCONST', 'BITWISEOP', 'ARCHTYPE', 'PORTDIR')
+SIGNAL, VARIABLE = ('SIGNAL', 'VARIABLE')
 DECINTCONST, BININTCONST, HEXINTCONST, BINVECCONST, HEXVECCONST, BOOLCONST = ('DECINTCONST', 'BININTCONST', 'HEXINTCONST', 'BINVECCONST', 'HEXVECCONST', 'BOOLCONST')
 ADD, SUB, MUL, DIV, MOD, EXP = ('ADD', 'SUB', 'MUL', 'DIV', 'MOD', 'EXP')
 AND, OR, XOR, NOT = ('AND', 'OR', 'XOR', 'NOT')
@@ -26,25 +28,29 @@ RESERVED_KEYWORDS = {
     'connect' : Token('CONNECT','connect'),
     'generate' : Token('GENERATE','generate'),
     'process' : Token('PROCESS', 'process'),
-    'signal' : Token('SIGNAL','signal'),
-    'variable' : Token('VARIABLE','variable'),
+    'signal' : Token(SIGNAL,'signal'),
+    'variable' : Token(VARIABLE,'variable'),
     'new' : Token('NEW','new'),
     'this' : Token('THIS','this'),
     'if' : Token('IF','if'),
     'for' : Token('FOR','for'),
     'while' : Token('WHILE','while'),
-    'int' : Token('INT','int'),
-    'vec' : Token('VEC','vec'),
-    'bool' : Token('BOOL','bool'),
+    'input' : Token(PORTDIR, 'input'),
+    'output' : Token(PORTDIR, 'output'),
+    'int' : Token(TYPE,'int'),
+    'vec' : Token(TYPE,'vec'),
+    'bool' : Token(TYPE,'bool'),
     'true' : Token(BOOLCONST, 'true'),
     'false' : Token(BOOLCONST, 'false'),
-    'and' : Token('AND', 'and'),
-    'or' : Token('OR', 'or'),
-    'not' : Token('NOT', 'not'),
-    'nand' : Token('NAND', 'nand'),
-    'nor' : Token('NOR', 'nor'),
-    'xor' : Token('XOR', 'xor'),
-    'xnor' : Token('XNOR', 'xnor'),
+    'and' : Token(BITWISEOP, 'and'),
+    'or' : Token(BITWISEOP, 'or'),
+    'not' : Token(BITWISEOP, 'not'),
+    'nand' : Token(BITWISEOP, 'nand'),
+    'nor' : Token(BITWISEOP, 'nor'),
+    'xor' : Token(BITWISEOP, 'xor'),
+    'xnor' : Token(BITWISEOP, 'xnor'),
+    'implementation' : Token(ARCHTYPE, 'implementation'),
+    'verification' : Token(ARCHTYPE, 'verification')
 }
 
 class Lexer():
@@ -254,10 +260,14 @@ class Lexer():
                 self.advance()
                 return Token(RBRACE, '}')
 
+            if self.current_char == '=':
+                self.advance()
+                return Token(COMPASSIGN, '=')
+
             self.error()
 
         return Token(EOF, None)
 
-lex = Lexer('hi <= x"12ffab"; lol := ( 0b1011); {banana <= true};')
+lex = Lexer('hi <= x"12ffab"; lol := ( 0b1011); {banana <= true}; five or x"10f" := hi;')
 for i in range(20):
     print(lex.getNextToken())
