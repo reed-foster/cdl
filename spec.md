@@ -1,3 +1,8 @@
+<!--
+spec.md - Reed Foster
+human friendly description of CDL's language specification
+-->
+
 # Circuit Description Language (CDL) Specification
 
 CDL is a high-level hardware description language that compiles to VHDL. It is strongly typed, but reduces some of structural VHDL's verbosity, and has slightly more strict syntax/style rules. Because CDL compiles to VHDL, both languages can be used together in a project.

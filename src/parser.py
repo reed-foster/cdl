@@ -1,3 +1,6 @@
+# parser.py - Reed Foster
+# parser for token streams; generates an AST
+
 class Parser():
 
     def __init__(self, lexer):

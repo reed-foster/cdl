@@ -1,3 +1,8 @@
+<!--
+comparison.md - Reed Foster
+a sample comparison between two circuits in CDL and VHDL
+-->
+
 ```
 component Foo
 {

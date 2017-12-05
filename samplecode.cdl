@@ -1,3 +1,6 @@
+// samplecode.cdl - Reed Foster
+// sample CDL code used to define language specification
+
 /*
 Scoping: any variables or signals declared within a {} block are visible only within that scope and any sub-blocks it contains.
 Privacy: genericFields are set when the an instance of the component is created. Only members of the port block are accessible by supercomponents.

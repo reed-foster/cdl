@@ -1,3 +1,6 @@
+// grammar.bnf - Reed Foster
+// formal definition of CDL's syntax
+
 component_delcaration := component identifier { component_body }
 component_body := [generic_body] port { port_body } [archtype] arch { arch_body }
 

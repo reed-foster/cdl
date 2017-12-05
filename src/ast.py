@@ -1,3 +1,6 @@
+# ast.py - Reed Foster
+# Classes for all AST nodes
+
 class AST():
     pass
 
