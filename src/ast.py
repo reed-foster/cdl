@@ -25,7 +25,53 @@ class Assign(AST):
         self.token = self.op = op
         self.right = right
 
-class Var(AST):
+class CompInst(AST):
+    def __init__(self, token, generics):
+        self.token = token
+        self.generics = generics
+
+class Signal(AST):
     def __init__(self, token):
         self.token = token
-        self.value = token.value
+        self.name = token.value
+
+class Variable(AST):
+    def __init__(self, token):
+        self.token = token
+        self.name = token.value
+
+class Generic(AST):
+    def __init__(self, token, type):
+        self.token = token
+        self.name = token.value
+        self.type = type
+
+class PortList(AST):
+    def __init__(self):
+        self.children = []
+
+class Port(AST):
+    def __init__(self, token, type, direction):
+        self.token = token
+        self.name = token.value
+        self.type = type
+        self.direction = direction
+
+class Component(AST):
+    def __init__(self, name, body):
+        self.name = name
+        self.body = body
+
+class ComponentBody(AST):
+    def __init__(self):
+        self.children = []
+
+class Arch(AST):
+    def __init__(self, optname, body):
+        if optname is not None:
+            self.name = optname
+        self.body = body
+
+class ArchBody(AST):
+    def __init__(self):
+        self.children = []
