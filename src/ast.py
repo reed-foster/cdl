@@ -5,9 +5,8 @@ class AST():
     pass
 
 class TernaryOp(AST):
-    def __init__(self, boolean, op, left, right):
+    def __init__(self, boolean, left, right):
         self.boolean = boolean
-        self.token = self.op = op
         self.left = left
         self.right = right
 
@@ -22,32 +21,29 @@ class UnaryOp(AST):
         self.token = self.op = op
         self.right = right
 
-class Assign(AST):
-    def __init__(self, left, op, right):
-        self.left = left
-        self.token = self.op = op
-        self.right = right
-
 class CompInst(AST):
-    def __init__(self, token, generics):
+    def __init__(self, token, comptype, generics):
         self.token = token
         self.generics = generics
+        self.type = comptype
 
 class Signal(AST):
-    def __init__(self, token):
+    def __init__(self, token, sigtype):
         self.token = token
         self.name = token.value
+        self.type = sigtype
 
 class Variable(AST):
-    def __init__(self, token):
+    def __init__(self, token, vartype):
         self.token = token
         self.name = token.value
+        self.type = vartype
 
 class Generic(AST):
-    def __init__(self, token, type):
+    def __init__(self, token, gentype):
         self.token = token
         self.name = token.value
-        self.type = type
+        self.type = gentype
 
 class PortList(AST):
     def __init__(self):

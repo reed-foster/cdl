@@ -1,8 +1,8 @@
 # lexer.py - Reed Foster
 # tokenizer/lexer for CDL
 
-ID, SIGASSIGN, VARASSIGN, COMPASSIGN = ('ID', 'SIGASSIGN', 'VARASSIGN', 'COMPASSIGN')
-TYPE, BOOLCONST, BITWISEOP, ARCHTYPE, PORTDIR = ('TYPE', 'BOOLCONST', 'BITWISEOP', 'ARCHTYPE', 'PORTDIR')
+ID, SIGASSIGN, VARASSIGN, ASSIGN = ('ID', 'SIGASSIGN', 'VARASSIGN', 'ASSIGN')
+TYPE, BITWISEOP, ARCHTYPE, PORTDIR = ('TYPE', 'BITWISEOP', 'ARCHTYPE', 'PORTDIR')
 SIGNAL, VARIABLE = ('SIGNAL', 'VARIABLE')
 DECINTCONST, BININTCONST, HEXINTCONST, BINVECCONST, HEXVECCONST, BOOLCONST = ('DECINTCONST', 'BININTCONST', 'HEXINTCONST', 'BINVECCONST', 'HEXVECCONST', 'BOOLCONST')
 ADD, SUB, MUL, DIV, MOD, EXP = ('ADD', 'SUB', 'MUL', 'DIV', 'MOD', 'EXP')
@@ -11,7 +11,7 @@ LPAREN, RPAREN, LBRACE, RBRACE = ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE')
 TERNQ, TERNSEP = ('TERNQ', 'TERNSEP')
 LT, GT, LE, GE, EQ, NE = ('LT', 'GT', 'LE', 'GE', 'EQ', 'NE')
 EOF, EOL = ('EOF', 'EOL')
-COMMA = 'COMMA'
+COMMA, PERIOD = ('COMMA', 'PERIOD')
 
 BOOLSCOPE, OTHERSCOPE = ('BOOLSCOPE', 'OTHERSCOPE')
 
@@ -123,7 +123,7 @@ class Lexer():
 
     def id(self):
         result = ''
-        while self.current_char is not None and self.current_char.isalnum():
+        while self.current_char is not None and (self.current_char.isalnum() or self.current_char == '_'):
             result += self.current_char
             self.advance()
         token = RESERVED_KEYWORDS.get(result, Token(ID, result)) #dict.get(key[, default]) returns default if key isn't found
@@ -147,6 +147,9 @@ class Lexer():
             if self.current_char == ',':
                 self.advance()
                 return Token(COMMA, ',')
+            if self.current_char == '.':
+                self.advance()
+                return Token(PERIOD, '.')
 
             if self.current_char == '/' and self.peek() == '/':
                 self.comment()
@@ -265,7 +268,7 @@ class Lexer():
 
             if self.current_char == '=':
                 self.advance()
-                return Token(COMPASSIGN, '=')
+                return Token(ASSIGN, '=')
 
             self.error()
 

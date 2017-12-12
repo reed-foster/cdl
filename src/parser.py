@@ -18,88 +18,151 @@ class Parser():
         else:
             self.error()
 
-    def factor(self):
+    def term(self):
         token = self.current_token
-        if token.type == SUB:
-            self.eat(SUB)
-            node = UnaryOp(token, self.factor())
-            return node
-        if token.type in (INT, VEC, BOOL):
-            return token
+        if token.type in (BININTCONST, HEXINTCONST, BINVECCONST, HEXVECCONST):
+            return self.constant()
         if token.type == LPAREN:
             self.eat(LPAREN)
             node = self.expression()
             self.eat(RPAREN)
-            return nodes
+            return node
+        if token.type == ID:
+            return self.identifier()
 
     def power(self):
-        node = self.factor()
-        while self.current_token.type == EXP:
+        node = self.term()
+        if self.current_token.type == EXP:
             token = self.current_token
             self.eat(EXP)
+            node = BinaryOp(node, token, self.term())
+        return node
+
+    def factor(self):
+        token = self.current_token
+        if token.type == SUB:
+            self.eat(SUB)
+            node = UnaryOp(token, self.power())
+            return node
+        if token.type == BITWISEOP and token.value == 'not':
+            self.eat(BITWISEOP)
+            node = UnaryOp(token, self.power())
+            return node
+
+    def product(self):
+        node = self.factor()
+        if self.current_token.type in (MUL, DIV, MOD) or (self.current_token.type == BITWISEOP and self.current_token.value in ('and', 'nand', 'xor', 'xnor')):
+            token = self.current_token
+            self.eat(token.type)
             node = BinaryOp(node, token, self.factor())
         return node
 
-    def term(self):
-        node = self.power()
-        while self.current_token.type in (MUL, DIV, MOD):
+    def sum(self):
+        node = self.product()
+        if self.current_token.type in (ADD, SUB) or (self.current_token.type == BITWISEOP and self.current_token.value in ('or', 'nor')):
             token = self.current_token
             self.eat(token.type)
-            node = BinaryOp(node, token, self.power())
+            node = BinaryOp(node, token, self.product())
         return node
-            
+
+    def relation(self):
+        token = self.current_token
+        if token.type == BOOLCONST:
+            self.eat(BOOLCONST)
+            return token
+        else:
+            node = self.sum()
+            if self.current_token in (LT, GT, LE, GE, EQ, NE):
+                token = self.current_token
+                self.eat(token.type)
+                node = BinaryOp(node, token, self.sum())
+            return node
+
+    def boolfactor(self):
+        token = self.current_token
+        if token.type == NOT:
+            self.eat(NOT)
+            node = UnaryOp(token, self.relation())
+            return node
+        return self.relation()
+
+    def boolexpr(self):
+        node = self.boolfactor()
+        if self.current_token.type in (AND, OR, XOR):
+            token = self.current_token
+            self.eat(token.type)
+            node = BinaryOp(node, token, self.boolfactor())
+        return node
 
     def expression(self):
-        node = self.term()
-        while self.current_token.type in (ADD, SUB, TENRQ):
-            token = self.current_token
-            if token.type == TERNQ:
-                self.eat(TERNQ)
-                left = self.expression()
-                self.eat(TERNSEP)
-                node = TernaryOp
-            self.eat(token.type)
-            node = BinaryOp(node, token, self.term())
+        node = self.boolexpr()
+        if self.current_token.type == TERNQ:
+            self.eat(TERNQ)
+            left = self.expression()
+            self.eat(TERNSEP)
+            node = TernaryOp(node, left, self.expression())
         return node
 
-    def relationalexpression(self):
-        node = self.expression()
-        while self.current_token.type in (LT, GT, LE, GE, EQ, NE):
-            token = self.current_token
-            self.eat(token.type)
-            node = BinaryOp(node, token, self.term())
-        return node
+    def identifier(self):
+        left = self.current_token
+        self.eat(ID)
+        token = self.current_token
+        if token.type == PERIOD:
+            self.eat(PERIOD)
+            return BinaryOp(left, token, self.identifier())
+        return left
 
-    def booleanfactor(self):
-        node = self.relationalexpression()
-        if self.current_token.type == NOT:
-            self.eat(NOT)
-            node = UnaryOp(token, self.relationalexpression())
-            return node
-        #if self.current_token.type
-    
+    def constant(self):
+        token = self.current_token
+        if token.type in (BOOLCONST, BININTCONST, HEXINTCONST, BINVECCONST, HEXVECCONST):
+            self.eat(token.type)
+        else:
+            self.eat(ID)
+        return token
+
     def gendeclare(self):
+        gentype = self.current_token
         self.eat(TYPE)
         token = self.current_token
-        
+        self.eat(ID)
+        self.eat(EOL)
+        return Generic(token, gentype)
 
     def sigdeclare(self):
         self.eat(SIGNAL)
+        sigtype = self.current_token
         self.eat(TYPE)
         token = self.current_token
-
+        self.eat(ID)
+        self.eat(EOL)
+        return Signal(token, sigtype)
 
     def vardeclare(self):
-
-    def sigassign(self):
-        left = self.signal()
+        self.eat(VARIABLE)
+        vartype = self.current_token
+        self.eat(TYPE)
         token = self.current_token
-        self.eat(SIGASSIGN)
+        self.eat(ID)
+        self.eat(EOL)
+        return Variable(token, vartype)
+
+    def genericlist(self):
+        item = self.current_token
+        if item.type != ID:
+            assignment = self.constant()
+        else:
+            self.eat(ID)
+            self.eat(ASSIGN)
+            assignment = BinaryOp(item, Token(ASSIGN, '='), self.constant())
+        if self.current_token.type == ',':
+            token = self.current_token
+            self.eat(COMMA)
+            return BinaryOp(assignment, token, self.genericlist())
+        return item
 
     def component(self):
         self.eat('COMPONENT')
-        name = self.current_token
-        self.eat(ID)
+        name = self.identifier()
         self.eat(LBRACE)
         body = ComponentBody()
         while self.current_token.type != RBRACE:
@@ -148,33 +211,34 @@ class Parser():
         while self.current_token.type != RBRACE:
             if self.current_token.type == SIGNAL:
                 body.children.append(self.signaldeclaration())
-            elif self.current_token.type == ID:
-                #need to distinguish b/w component instatiation and signal assignment
-                token = self.current_token
-                self.eat(ID)
-                if self.current_token.type == SIGASSIGN:
-                    self.eat(SIGASSIGN)
-                    body.children.append(Assign(token, self.expression()))
-                elif self.current_token.type == ID:
-                    name = self.current_token
-                    self.eat(ID)
-                    self.eat(COMPASSIGN)
-                    self.eat('NEW')
-                    if self.current_token.type == ID and self.current_token.value == token.value:
-                        self.eat(ID)
-                        self.eat(LPAREN)
-                        #parse generic assignment list
-                        generics = 
-                        self.eat(RPAREN)
-                        body.children.append(CompInst(name, generics))
-                    else:
-                        self.error()
             elif self.current_token.type == 'CONNECT':
                 body.children.append(self.connect())
             elif self.current_token.type == 'PROCESS':
                 body.children.append(self.process())
             elif self.current_token.type == 'GENERATE':
                 body.children.append(self.generate())
+            elif self.current_token.type == ID:
+                #need to distinguish b/w component instatiation and signal assignment
+                node = self.identifier()
+                if self.current_token.type == SIGASSIGN:
+                    self.eat(SIGASSIGN)
+                    body.children.append(BinaryOp(node, Token(SIGASSIGN, '<='), self.expression()))
+                    self.eat(EOL)
+                elif self.current_token.type == ID:
+                    name = self.current_token
+                    self.eat(ID)
+                    self.eat(ASSIGN)
+                    self.eat('NEW')
+                    if self.current_token.type == ID and self.current_token.value == node.value:
+                        self.eat(ID)
+                        self.eat(LPAREN)
+                        #parse generic assignment list
+                        generics = self.genericlist()
+                        self.eat(RPAREN)
+                        body.children.append(CompInst(name, generics))
+                        self.eat(EOL)
+                    else:
+                        self.error()
         self.eat(RBRACE)
         node = Arch(name, body)
         return node
