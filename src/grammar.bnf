@@ -23,7 +23,7 @@ generate_block := generate if "(" booleanexpression ")" { arch_body }
 process_block := process ([(identifier ",")*] identifier) { process_body }
 process_body := (variable_declaration | variable_assignment | signal_assignment)*
 variable_declaration := "variable" type identifier eol
-variable_assignment := identifier = expression eol
+variable_assignment := identifier ":=" expression eol
 
 alpha := ?regex([a-zA-Z])?
 digit := ?regex([0-9])?
@@ -41,11 +41,16 @@ rel_op := ">" | "<" | ">=" | "<=" | "==" | "!="
 
 booleanexpression := expression relop expression | booleanterm ()
 
-expression := booleanexpression "?" expression ":" expression | term (add_op term)*
-term := factor (mult_op factor)*
-factor := "-" factor | literal | "(" expression ")" | identifier 
+expression := booleanexpression "?" expression ":" expression | sum
+booleanexpression := relation (boolop relation)*
+relation := sum relop sum | boolconst
+sum := product (add_op product)*
+product := factor (mult_op factor)*
+factor := "-" power | "not" power
+power := term ("**" expression)*
+term := literal | "(" expression ")" | identifier 
 
-signal_assignment := identifier <= expression eol
+signal_assignment := identifier "<="" expression eol
 
 
 //Token List
