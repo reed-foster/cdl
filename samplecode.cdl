@@ -34,7 +34,7 @@ component CompName
 
 		connect
 		{
-			compidentifier.outport => compidentifier.inport;
+			compidentifier.outport <= compidentifier.inport;
 		}
 
 		signalIdentifier <= signalIdentifier binOperator signalIdentifier; //operator can be *, /, +, -, and, or, nand, nor, xor, xnor, etc. binaryOperators only work on primitive types
