@@ -46,7 +46,7 @@ class Visitor(object):
         return 'portdec ' + self.visit(node.name, depth + 1) + ' type = ' + node.porttype.value + ' dir = ' + node.direction.value
 
     def visitComponent(self, node, depth):
-        return 'component ' + self.visit(node.name, depth + 1) + '\n' + '  ' * depth + self.visit(node.body, depth + 1)
+        return 'component ' + self.visit(node.name, depth + 1) + '\n' + '  ' * (depth + 1) + self.visit(node.body, depth + 2)
 
     def visitComponentBody(self, node, depth):
         string = 'componentbody'
