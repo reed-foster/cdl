@@ -1,62 +1,10 @@
 # lexer.py - Reed Foster
 # tokenizer/lexer for CDL
 
-ID, SIGASSIGN, VARASSIGN, ASSIGN = ('ID', 'SIGASSIGN', 'VARASSIGN', 'ASSIGN')
-TYPE, BITWISEOP, ARCHTYPE, PORTDIR = ('TYPE', 'BITWISEOP', 'ARCHTYPE', 'PORTDIR')
-SIGNAL, VARIABLE = ('SIGNAL', 'VARIABLE')
-DECINTCONST, BININTCONST, HEXINTCONST, BINVECCONST, HEXVECCONST, BOOLCONST = ('DECINTCONST', 'BININTCONST', 'HEXINTCONST', 'BINVECCONST', 'HEXVECCONST', 'BOOLCONST')
-ADD, SUB, MUL, DIV, MOD, EXP = ('ADD', 'SUB', 'MUL', 'DIV', 'MOD', 'EXP')
-AND, OR, XOR, NOT = ('AND', 'OR', 'XOR', 'NOT')
-LPAREN, RPAREN, LBRACE, RBRACE = ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE')
-TERNQ, TERNSEP = ('TERNQ', 'TERNSEP')
-LT, GT, LE, GE, EQ, NE = ('LT', 'GT', 'LE', 'GE', 'EQ', 'NE')
-EOF, EOL = ('EOF', 'EOL')
-COMMA, PERIOD = ('COMMA', 'PERIOD')
+from enums import *
+from token import *
 
-BOOLSCOPE, OTHERSCOPE = ('BOOLSCOPE', 'OTHERSCOPE')
-
-class Token():
-    def __init__(self, type, value):
-        self.type = type
-        self.value = value
-
-    def __str__(self):
-        return 'Token({type}, "{value}")'.format(type=self.type, value=self.value.__str__())
-
-
-RESERVED_KEYWORDS = {
-    'component' : Token('COMPONENT', 'component'),
-    'port' : Token('PORT','port'),
-    'arch' : Token('ARCH','arch'),
-    'connect' : Token('CONNECT','connect'),
-    'generate' : Token('GENERATE','generate'),
-    'process' : Token('PROCESS', 'process'),
-    'signal' : Token(SIGNAL,'signal'),
-    'variable' : Token(VARIABLE,'variable'),
-    'new' : Token('NEW','new'),
-    'this' : Token('THIS','this'),
-    'if' : Token('IF','if'),
-    'for' : Token('FOR','for'),
-    'while' : Token('WHILE','while'),
-    'input' : Token(PORTDIR, 'input'),
-    'output' : Token(PORTDIR, 'output'),
-    'int' : Token(TYPE,'int'),
-    'vec' : Token(TYPE,'vec'),
-    'bool' : Token(TYPE,'bool'),
-    'true' : Token(BOOLCONST, 'true'),
-    'false' : Token(BOOLCONST, 'false'),
-    'and' : Token(BITWISEOP, 'and'),
-    'or' : Token(BITWISEOP, 'or'),
-    'not' : Token(BITWISEOP, 'not'),
-    'nand' : Token(BITWISEOP, 'nand'),
-    'nor' : Token(BITWISEOP, 'nor'),
-    'xor' : Token(BITWISEOP, 'xor'),
-    'xnor' : Token(BITWISEOP, 'xnor'),
-    'implementation' : Token(ARCHTYPE, 'implementation'),
-    'verification' : Token(ARCHTYPE, 'verification')
-}
-
-class Lexer():
+class Lexer(object):
     def __init__(self, text):
         self.text = text
         self.pos = 0
@@ -274,6 +222,9 @@ class Lexer():
 
         return Token(EOF, None)
 
-lex = Lexer('hi <= x"12ffab"; lol := ( 0b1011); {banana <= true}; five or x"10f" := hi;')
-for i in range(20):
-    print(lex.getNextToken())
+def test():
+    lex = Lexer('hi <= x"12ffab"; lol := ( 0b1011); {banana <= true}; five or x"10f" := hi;')
+    for i in range(23):
+        print(lex.getNextToken())
+
+#test()

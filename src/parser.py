@@ -1,11 +1,16 @@
 # parser.py - Reed Foster
 # parser for token streams; generates an AST
 
-class Parser():
+from enums import *
+from lexer import *
+from ast import *
+
+class Parser(object):
 
     def __init__(self, lexer):
         self.lexer = lexer
         self.current_token = self.lexer.getNextToken()
+        # dictionaries that contain keys (name of variable/signal) and corresponding values (scope of the variable)
         varlist = {}
         siglist = {}
 
@@ -48,6 +53,7 @@ class Parser():
             self.eat(BITWISEOP)
             node = UnaryOp(token, self.power())
             return node
+        return self.power()
 
     def product(self):
         node = self.factor()
@@ -72,7 +78,7 @@ class Parser():
             return token
         else:
             node = self.sum()
-            if self.current_token in (LT, GT, LE, GE, EQ, NE):
+            if self.current_token.type in (LT, GT, LE, GE, EQ, NE):
                 token = self.current_token
                 self.eat(token.type)
                 node = BinaryOp(node, token, self.sum())
@@ -110,15 +116,15 @@ class Parser():
         if token.type == PERIOD:
             self.eat(PERIOD)
             return BinaryOp(left, token, self.identifier())
-        return left
+        return Identifier(left)
 
     def constant(self):
         token = self.current_token
-        if token.type in (BOOLCONST, BININTCONST, HEXINTCONST, BINVECCONST, HEXVECCONST):
+        if token.type in (BOOLCONST, BININTCONST, HEXINTCONST, DECINTCONST, BINVECCONST, HEXVECCONST):
             self.eat(token.type)
         else:
             self.eat(ID)
-        return token
+        return Constant(token)
 
     def gendeclare(self):
         gentype = self.current_token
@@ -126,7 +132,7 @@ class Parser():
         token = self.current_token
         self.eat(ID)
         self.eat(EOL)
-        return Generic(token, gentype)
+        return Generic(Identifier(token), gentype)
 
     def sigdeclare(self):
         self.eat(SIGNAL)
@@ -135,7 +141,7 @@ class Parser():
         token = self.current_token
         self.eat(ID)
         self.eat(EOL)
-        return Signal(token, sigtype)
+        return Signal(Identifier(token), sigtype)
 
     def vardeclare(self):
         self.eat(VARIABLE)
@@ -144,21 +150,24 @@ class Parser():
         token = self.current_token
         self.eat(ID)
         self.eat(EOL)
-        return Variable(token, vartype)
+        return Variable(Identifier(token), vartype)
+
+    def genericassign(self):
+        item = self.current_token
+        self.eat(ID)
+        self.eat(ASSIGN)
+        constant = Constant(self.current_token)
+        self.eat(self.current_token.type)
+        assignment = BinaryOp(Identifier(item), Token(ASSIGN, '='), constant)
+        return assignment
 
     def genericlist(self):
-        item = self.current_token
-        if item.type != ID:
-            assignment = self.constant()
-        else:
-            self.eat(ID)
-            self.eat(ASSIGN)
-            assignment = BinaryOp(item, Token(ASSIGN, '='), self.constant())
-        if self.current_token.type == ',':
+        assignment = self.genericassign()
+        if self.current_token.type == COMMA:
             token = self.current_token
             self.eat(COMMA)
             return BinaryOp(assignment, token, self.genericlist())
-        return item
+        return assignment
 
     def component(self):
         self.eat('COMPONENT')
@@ -167,22 +176,14 @@ class Parser():
         body = ComponentBody()
         while self.current_token.type != RBRACE:
             if self.current_token.type == TYPE:
-                body.children.append(self.generic())
+                body.children.append(self.gendeclare())
             elif self.current_token.type == 'PORT':
                 # TODO: add error for multiple port declarations
                 body.children.append(self.port())
-            elif self.current_token.type == ID || self.current_token.type == 'ARCH':
+            elif self.current_token.type == ID or self.current_token.type == 'ARCH':
                 body.children.append(self.arch())
         self.eat(RBRACE)
         node = Component(name, body)
-        return node
-
-    def generic(self):
-        type = self.current_token
-        self.eat(TYPE)
-        node = Generic(self.current_token, type)
-        self.eat(ID)
-        self.eat(EOL)
         return node
 
     def port(self):
@@ -192,25 +193,25 @@ class Parser():
         while self.current_token.type != RBRACE:
             direction = self.current_token
             self.eat(PORTDIR)
-            type = self.current_token
+            porttype = self.current_token
             self.eat(TYPE)
-            body.children.append(Port(self.current_token, type, direction))
+            body.children.append(Port(Identifier(self.current_token), porttype, direction))
             self.eat(ID)
             self.eat(EOL)
         self.eat(RBRACE)
         return body
 
     def arch(self):
-        name = None
+        archname = Token(ID, 'implementation')
         if self.current_token == ID:
-            name = self.current_token
+            archname = self.current_token
             self.eat(ID)
         self.eat('ARCH')
         self.eat(LBRACE)
         body = ArchBody()
         while self.current_token.type != RBRACE:
             if self.current_token.type == SIGNAL:
-                body.children.append(self.signaldeclaration())
+                body.children.append(self.sigdeclare())
             elif self.current_token.type == 'CONNECT':
                 body.children.append(self.connect())
             elif self.current_token.type == 'PROCESS':
@@ -229,16 +230,46 @@ class Parser():
                     self.eat(ID)
                     self.eat(ASSIGN)
                     self.eat('NEW')
-                    if self.current_token.type == ID and self.current_token.value == node.value:
+                    if self.current_token.type == ID and self.current_token.value == node.token.value:
                         self.eat(ID)
                         self.eat(LPAREN)
                         #parse generic assignment list
                         generics = self.genericlist()
                         self.eat(RPAREN)
-                        body.children.append(CompInst(name, generics))
+                        body.children.append(CompInst(Identifier(name), node, generics))
                         self.eat(EOL)
                     else:
                         self.error()
         self.eat(RBRACE)
-        node = Arch(name, body)
+        node = Arch(Identifier(archname), body)
         return node
+
+
+lex = Lexer(
+'''
+component CompName
+{
+    int genericint;
+    bool genericbool;
+    vec genericvec;
+
+    port
+    {
+        input int inputint;
+        input vec inputvec;
+        output bool outputbool;
+    }
+
+    arch
+    {
+        signal vec foo;
+        foo <= fox < banana;
+        CompType compinst = new CompType(lol = 3, foo = 5, banana = x"4");
+    }
+}
+''')
+parse = Parser(lex)
+
+tree = parse.component()
+
+print tree

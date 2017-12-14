@@ -1,7 +1,10 @@
 # ast.py - Reed Foster
 # Classes for all AST nodes
 
-class AST():
+from enums import *
+from token import *
+
+class AST(object):
     pass
 
 class TernaryOp(AST):
@@ -22,38 +25,42 @@ class UnaryOp(AST):
         self.right = right
 
 class CompInst(AST):
-    def __init__(self, token, comptype, generics):
-        self.token = token
+    def __init__(self, name, comptype, generics):
+        self.name = name
         self.generics = generics
-        self.type = comptype
+        self.comptype = comptype
 
 class Signal(AST):
-    def __init__(self, token, sigtype):
-        self.token = token
-        self.name = token.value
-        self.type = sigtype
+    def __init__(self, name, sigtype):
+        self.name = name
+        self.sigtype = sigtype
 
 class Variable(AST):
-    def __init__(self, token, vartype):
-        self.token = token
-        self.name = token.value
-        self.type = vartype
+    def __init__(self, name, vartype):
+        self.name = name
+        self.vartype = vartype
 
 class Generic(AST):
-    def __init__(self, token, gentype):
+    def __init__(self, name, gentype):
+        self.name = name
+        self.gentype = gentype
+
+class Constant(AST):
+    def __init__(self, token):
         self.token = token
-        self.name = token.value
-        self.type = gentype
+
+class Identifier(AST):
+    def __init__(self, token):
+        self.token = token
 
 class PortList(AST):
     def __init__(self):
         self.children = []
 
 class Port(AST):
-    def __init__(self, token, type, direction):
-        self.token = token
-        self.name = token.value
-        self.type = type
+    def __init__(self, name, porttype, direction):
+        self.name = name
+        self.porttype = porttype
         self.direction = direction
 
 class Component(AST):
@@ -67,8 +74,7 @@ class ComponentBody(AST):
 
 class Arch(AST):
     def __init__(self, optname, body):
-        if optname is not None:
-            self.name = optname
+        self.name = optname
         self.body = body
 
 class ArchBody(AST):
