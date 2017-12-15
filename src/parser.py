@@ -38,7 +38,7 @@ class Parser(object):
 
     def power(self):
         node = self.term()
-        if self.current_token.type == EXP:
+        while self.current_token.type == EXP:
             token = self.current_token
             self.eat(EXP)
             node = BinaryOp(node, token, self.term())
@@ -58,7 +58,7 @@ class Parser(object):
 
     def product(self):
         node = self.factor()
-        if self.current_token.type in (MUL, DIV, MOD) or (self.current_token.type == BITWISEOP and self.current_token.value in ('and', 'nand', 'xor', 'xnor')):
+        while self.current_token.type in (MUL, DIV, MOD) or (self.current_token.type == BITWISEOP and self.current_token.value in ('and', 'nand', 'xor', 'xnor')):
             token = self.current_token
             self.eat(token.type)
             node = BinaryOp(node, token, self.factor())
@@ -97,7 +97,7 @@ class Parser(object):
 
     def boolexpr(self):
         node = self.boolfactor()
-        if self.current_token.type in (AND, OR, XOR):
+        while self.current_token.type in (AND, OR, XOR):
             token = self.current_token
             self.eat(token.type)
             node = BinaryOp(node, token, self.boolfactor())
@@ -105,7 +105,7 @@ class Parser(object):
 
     def expression(self):
         node = self.boolexpr()
-        if self.current_token.type == TERNQ:
+        while self.current_token.type == TERNQ:
             self.eat(TERNQ)
             left = self.expression()
             self.eat(TERNSEP)
@@ -116,7 +116,7 @@ class Parser(object):
         left = self.current_token
         self.eat(ID)
         token = self.current_token
-        if token.type == PERIOD:
+        while token.type == PERIOD:
             self.eat(PERIOD)
             return BinaryOp(left, token, self.identifier())
         return Identifier(left)
