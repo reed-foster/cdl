@@ -81,6 +81,10 @@ class Lexer(object):
         while self.current_char is not None and self.current_char != '\n':
             self.advance()
 
+    def multilinecomment(self):
+        while self.current_char is not None and (not (self.current_char == '*' and self.peek() == '/')):
+            self.advance()
+
     def getNextToken(self):
         while self.current_char is not None:
 
@@ -88,6 +92,20 @@ class Lexer(object):
                 self.skipWhiteSpace()
                 continue
 
+            # Skip multiline comments
+            if self.current_char == '/' and self.peek() == '*':
+                self.multilinecomment()
+                self.advance()
+                self.advance()
+                self.skipWhiteSpace()
+                continue
+
+            # Skip single-line comments
+            if self.current_char == '/' and self.peek() == '/':
+                self.comment()
+                self.skipWhiteSpace()
+                continue
+            
             if self.current_char == ';':
                 self.advance()
                 return Token(EOL, ';')
@@ -99,11 +117,7 @@ class Lexer(object):
                 self.advance()
                 return Token(PERIOD, '.')
 
-            if self.current_char == '/' and self.peek() == '/':
-                self.comment()
-                self.skipWhiteSpace()
-                continue
-
+            # Tokenize hex constants
             if self.current_char == 'x' and self.peek() == '"':
                 self.advance()
                 self.advance()
@@ -136,17 +150,21 @@ class Lexer(object):
                 if self.current_scopetype == OTHERSCOPE:
                     return Token(SIGASSIGN, '<=')
 
+            # Tokenize other assignment operators
             if self.current_char == ':' and self.peek() == '=':
                 self.advance()
                 self.advance()
                 return Token(VARASSIGN, ':=')
+            if self.current_char == '=':
+                self.advance()
+                return Token(ASSIGN, '=')
 
             if self.current_char == '?':
                 self.advance()
-                return Token(TURNQ, '?')
+                return Token(TERNQ, '?')
             if self.current_char == ':':
                 self.advance()
-                return Token(TURNSEP, ':')
+                return Token(TERNSEP, ':')
 
             # Tokenize relational operators
             if self.current_char == '>' and self.peek() == '=':
@@ -168,6 +186,7 @@ class Lexer(object):
                 self.advance()
                 return Token(NE, '!=')
 
+            # Tokenize arithmetic operators
             if self.current_char == '+':
                 self.advance()
                 return Token(ADD, '+')
@@ -188,6 +207,7 @@ class Lexer(object):
                 self.advance()
                 return Token(MOD, '%')     
 
+            # Tokenize boolean operators
             if self.current_char == '&':
                 self.advance()
                 return Token(AND, '&')
@@ -201,6 +221,7 @@ class Lexer(object):
                 self.advance()
                 return Token(NOT, '!')
 
+            # Tokenize braces/parentheses
             if self.current_char == '(':
                 self.advance()
                 return Token(LPAREN, '(')
@@ -213,10 +234,6 @@ class Lexer(object):
             if self.current_char == '}':
                 self.advance()
                 return Token(RBRACE, '}')
-
-            if self.current_char == '=':
-                self.advance()
-                return Token(ASSIGN, '=')
 
             self.error()
 

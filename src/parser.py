@@ -10,9 +10,10 @@ class Parser(object):
     def __init__(self, lexer):
         self.lexer = lexer
         self.current_token = self.lexer.getNextToken()
-        # dictionaries that contain keys (name of variable/signal) and corresponding values (scope of the variable)
-        varlist = {}
-        siglist = {}
+        # dictionaries that contain keys (name of variable/signal) and corresponding values (type)
+        self.genlist = {}
+        self.varlist = {}
+        self.siglist = {}
 
     def error(self):
         raise Exception('Syntax Error')
@@ -25,7 +26,7 @@ class Parser(object):
 
     def term(self):
         token = self.current_token
-        if token.type in (BININTCONST, HEXINTCONST, BINVECCONST, HEXVECCONST):
+        if token.type in (BININTCONST, HEXINTCONST, DECINTCONST, BINVECCONST, HEXVECCONST):
             return self.constant()
         if token.type == LPAREN:
             self.eat(LPAREN)
@@ -65,7 +66,7 @@ class Parser(object):
 
     def sum(self):
         node = self.product()
-        if self.current_token.type in (ADD, SUB) or (self.current_token.type == BITWISEOP and self.current_token.value in ('or', 'nor')):
+        while self.current_token.type in (ADD, SUB) or (self.current_token.type == BITWISEOP and self.current_token.value in ('or', 'nor')):
             token = self.current_token
             self.eat(token.type)
             node = BinaryOp(node, token, self.product())
@@ -75,13 +76,15 @@ class Parser(object):
         token = self.current_token
         if token.type == BOOLCONST:
             self.eat(BOOLCONST)
-            return token
+            return Identifier(token)
         else:
+            self.lexer.current_scopetype = BOOLSCOPE
             node = self.sum()
             if self.current_token.type in (LT, GT, LE, GE, EQ, NE):
                 token = self.current_token
                 self.eat(token.type)
                 node = BinaryOp(node, token, self.sum())
+            self.lexer.current_scopetype = OTHERSCOPE
             return node
 
     def boolfactor(self):
@@ -132,6 +135,7 @@ class Parser(object):
         token = self.current_token
         self.eat(ID)
         self.eat(EOL)
+        self.genlist[token.value] = gentype.value
         return Generic(Identifier(token), gentype)
 
     def sigdeclare(self):
@@ -141,6 +145,7 @@ class Parser(object):
         token = self.current_token
         self.eat(ID)
         self.eat(EOL)
+        self.siglist[token.value] = sigtype.value
         return Signal(Identifier(token), sigtype)
 
     def vardeclare(self):
@@ -150,6 +155,7 @@ class Parser(object):
         token = self.current_token
         self.eat(ID)
         self.eat(EOL)
+        self.varlist[token.value] = vartype.value
         return Variable(Identifier(token), vartype)
 
     def genericassign(self):
@@ -245,31 +251,38 @@ class Parser(object):
         return node
 
 
-lex = Lexer(
-'''
-component CompName
-{
-    int genericint;
-    bool genericbool;
-    vec genericvec;
-
-    port
+def test():
+    lex = Lexer(
+    '''
+    component CompName
     {
-        input int inputint;
-        input vec inputvec;
-        output bool outputbool;
+        int genericint;
+        bool genericbool;
+        vec genericvec;
+
+        port
+        {
+            input int inputint;
+            input vec inputvec;
+            output bool outputbool;
+        }
+
+        arch
+        {
+            signal vec foo;
+            foo <= fox < banana;
+            CompType compinst = new CompType(lol = 3, foo = 5, banana = x"4");
+        }
     }
+    ''')
+    parse = Parser(lex)
 
-    arch
-    {
-        signal vec foo;
-        foo <= fox < banana;
-        CompType compinst = new CompType(lol = 3, foo = 5, banana = x"4");
-    }
-}
-''')
-parse = Parser(lex)
+    tree = parse.component()
 
-tree = parse.component()
+    print tree
+    print ''
+    print parse.genlist
+    print parse.varlist
+    print parse.siglist
 
-print tree
+#test()

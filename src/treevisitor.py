@@ -16,7 +16,8 @@ class Visitor(object):
         raise Exception('no visit{} method'.format(type(node).__name__))
 
     def visitTernaryOp(self, node, depth):
-        return 'ternary ?\n' + '  ' * depth + self.visit(node.boolean, depth + 1) + '\n' + '  ' * depth + self.visit(node.left, depth + 1) + '\n' + self.visit(node.right, depth + 1)
+        print node.right.token
+        return 'ternary ?\n' + '  ' * depth + self.visit(node.boolean, depth + 1) + '\n' + '  ' * depth + self.visit(node.left, depth + 1) + '\n' + '  ' * depth + self.visit(node.right, depth + 1)
 
     def visitBinaryOp(self, node, depth):
         return 'binary ' + node.op.value + '\n' + '  ' * depth + self.visit(node.left, depth + 1) + '\n' + '  ' * depth + self.visit(node.right, depth + 1)
@@ -69,37 +70,44 @@ class Visitor(object):
     def visitConstant(self, node, depth):
         return 'const ' + node.token.value
 
-vis = Visitor()
+def test():
 
-lex = Lexer(
-'''
-component CompName
-{
-    int genericint;
-    bool genericbool;
-    vec genericvec;
+    vis = Visitor()
 
-    port
+    lex = Lexer(
+    '''
+    component CompName
     {
-        input int inputint;
-        input vec inputvec;
-        output bool outputbool;
+        int genericint;
+        bool genericbool;
+        vec genericvec;
+
+        port
+        {
+            input int inputint;
+            input vec inputvec;
+            output bool outputbool;
+        }
+
+        arch
+        {
+            signal vec foo;
+            foo <= fox < banana;
+            cat <= (5 <= 3) ? fox : banana;
+            moo <= fox - banana and 2;
+            CompType compinst = new CompType(lol = 3, foo = 5, banana = x"4");
+            foo <= ((5 xor 7 > foo) ^ true) ? moo : fox - (7 * banana) + 2;
+        }
     }
+    ''')
+    parse = Parser(lex)
 
-    arch
-    {
-        signal vec foo;
-        foo <= fox < banana;
-        CompType compinst = new CompType(lol = 3, foo = 5, banana = x"4");
-    }
-}
-''')
-parse = Parser(lex)
+    tree = parse.component()
 
-tree = parse.component()
+    print vis.visit(tree, 0)
+    print ''
+    print parse.genlist
+    print parse.varlist
+    print parse.siglist
 
-#print tree.name.token
-#print type(tree.name.token)
-
-string = vis.visit(tree, 0)
-print string
+test()
