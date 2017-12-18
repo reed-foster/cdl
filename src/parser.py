@@ -15,6 +15,10 @@ class Parser(object):
         self.varlist = {}
         self.siglist = {}
 
+    # wrapper for component method
+    def parse(self):
+        return self.component()
+
     def error(self):
         raise Exception('Syntax Error')
 
@@ -24,53 +28,32 @@ class Parser(object):
         else:
             self.error()
 
-    def term(self):
-        token = self.current_token
-        if token.type in (BININTCONST, HEXINTCONST, DECINTCONST, BINVECCONST, HEXVECCONST):
-            return self.constant()
-        if token.type == LPAREN:
-            self.eat(LPAREN)
-            node = self.expression()
-            self.eat(RPAREN)
-            return node
-        if token.type == ID:
-            return self.identifier()
 
-    def power(self):
-        node = self.term()
-        while self.current_token.type == EXP:
-            token = self.current_token
-            self.eat(EXP)
-            node = BinaryOp(node, token, self.term())
+    # Expression parsing and utilities
+    def expression(self):
+        node = self.boolexpr()
+        while self.current_token.type == TERNQ:
+            self.eat(TERNQ)
+            left = self.expression()
+            self.eat(TERNSEP)
+            node = TernaryOp(node, left, self.expression())
         return node
 
-    def factor(self):
-        token = self.current_token
-        if token.type == SUB:
-            self.eat(SUB)
-            node = UnaryOp(token, self.power())
-            return node
-        if token.type == BITWISEOP and token.value == 'not':
-            self.eat(BITWISEOP)
-            node = UnaryOp(token, self.power())
-            return node
-        return self.power()
-
-    def product(self):
-        node = self.factor()
-        while self.current_token.type in (MUL, DIV, MOD) or (self.current_token.type == BITWISEOP and self.current_token.value in ('and', 'nand', 'xor', 'xnor')):
+    def boolexpr(self):
+        node = self.boolfactor()
+        while self.current_token.type in (AND, OR, XOR):
             token = self.current_token
             self.eat(token.type)
-            node = BinaryOp(node, token, self.factor())
+            node = BinaryOp(node, token, self.boolfactor())
         return node
 
-    def sum(self):
-        node = self.product()
-        while self.current_token.type in (ADD, SUB) or (self.current_token.type == BITWISEOP and self.current_token.value in ('or', 'nor')):
-            token = self.current_token
-            self.eat(token.type)
-            node = BinaryOp(node, token, self.product())
-        return node
+    def boolfactor(self):
+        token = self.current_token
+        if token.type == NOT:
+            self.eat(NOT)
+            node = UnaryOp(token, self.relation())
+            return node
+        return self.relation()
 
     def relation(self):
         token = self.current_token
@@ -87,31 +70,58 @@ class Parser(object):
             self.lexer.current_scopetype = OTHERSCOPE
             return node
 
-    def boolfactor(self):
-        token = self.current_token
-        if token.type == NOT:
-            self.eat(NOT)
-            node = UnaryOp(token, self.relation())
-            return node
-        return self.relation()
-
-    def boolexpr(self):
-        node = self.boolfactor()
-        while self.current_token.type in (AND, OR, XOR):
+    # Parse arithmetic summation operations and boolean summation operations
+    def sum(self):
+        node = self.product()
+        while self.current_token.type in (ADD, SUB) or (self.current_token.type == BITWISEOP and self.current_token.value in ('or', 'nor')):
             token = self.current_token
             self.eat(token.type)
-            node = BinaryOp(node, token, self.boolfactor())
+            node = BinaryOp(node, token, self.product())
         return node
 
-    def expression(self):
-        node = self.boolexpr()
-        while self.current_token.type == TERNQ:
-            self.eat(TERNQ)
-            left = self.expression()
-            self.eat(TERNSEP)
-            node = TernaryOp(node, left, self.expression())
+    # Parse arithmetic multiplication operations and boolean multiplication operations
+    def product(self):
+        node = self.factor()
+        while self.current_token.type in (MUL, DIV, MOD) or (self.current_token.type == BITWISEOP and self.current_token.value in ('and', 'nand', 'xor', 'xnor')):
+            token = self.current_token
+            self.eat(token.type)
+            node = BinaryOp(node, token, self.factor())
         return node
 
+    def factor(self):
+        token = self.current_token
+        if token.type == SUB:
+            self.eat(SUB)
+            node = UnaryOp(token, self.power())
+            return node
+        if token.type == BITWISEOP and token.value == 'not':
+            self.eat(BITWISEOP)
+            node = UnaryOp(token, self.power())
+            return node
+        return self.power()
+
+    def power(self):
+        node = self.term()
+        while self.current_token.type == EXP:
+            token = self.current_token
+            self.eat(EXP)
+            node = BinaryOp(node, token, self.term())
+        return node
+
+    def term(self):
+        token = self.current_token
+        if token.type in (BININTCONST, HEXINTCONST, DECINTCONST, BINVECCONST, HEXVECCONST):
+            return self.constant()
+        if token.type == LPAREN:
+            self.eat(LPAREN)
+            node = self.expression()
+            self.eat(RPAREN)
+            return node
+        if token.type == ID:
+            return self.identifier()
+
+
+    # Parsing of composite tokens
     def identifier(self):
         left = self.current_token
         self.eat(ID)
@@ -129,6 +139,8 @@ class Parser(object):
             self.eat(ID)
         return Constant(token)
 
+
+    # Parsing of declarations
     def gendeclare(self):
         gentype = self.current_token
         self.eat(TYPE)
@@ -158,23 +170,7 @@ class Parser(object):
         self.varlist[token.value] = vartype.value
         return Variable(Identifier(token), vartype)
 
-    def genericassign(self):
-        item = self.current_token
-        self.eat(ID)
-        self.eat(ASSIGN)
-        constant = Constant(self.current_token)
-        self.eat(self.current_token.type)
-        assignment = BinaryOp(Identifier(item), Token(ASSIGN, '='), constant)
-        return assignment
-
-    def genericlist(self):
-        assignment = self.genericassign()
-        if self.current_token.type == COMMA:
-            token = self.current_token
-            self.eat(COMMA)
-            return BinaryOp(assignment, token, self.genericlist())
-        return assignment
-
+    # Parse entire source
     def component(self):
         self.eat('COMPONENT')
         name = self.identifier()
@@ -192,6 +188,7 @@ class Parser(object):
         node = Component(name, body)
         return node
 
+    # Parse port declaration
     def port(self):
         self.eat('PORT')
         self.eat(LBRACE)
@@ -207,6 +204,7 @@ class Parser(object):
         self.eat(RBRACE)
         return body
 
+    # Parse architecture
     def arch(self):
         archname = Token(ID, 'implementation')
         if self.current_token == ID:
@@ -249,6 +247,25 @@ class Parser(object):
         self.eat(RBRACE)
         node = Arch(Identifier(archname), body)
         return node
+
+
+    # Parse generic assignments for component instantiation
+    def genericlist(self):
+        assignment = self.genericassign()
+        if self.current_token.type == COMMA:
+            token = self.current_token
+            self.eat(COMMA)
+            return BinaryOp(assignment, token, self.genericlist())
+        return assignment
+
+    def genericassign(self):
+        item = self.current_token
+        self.eat(ID)
+        self.eat(ASSIGN)
+        constant = Constant(self.current_token)
+        self.eat(self.current_token.type)
+        assignment = BinaryOp(Identifier(item), Token(ASSIGN, '='), constant)
+        return assignment
 
 
 def test():
