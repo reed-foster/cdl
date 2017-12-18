@@ -1,0 +1,27 @@
+(*
+    grammar.ebnf - Reed Foster
+    formal definition of CDL's syntax
+*)
+
+component = component_declaration, LBRACE, component_body, RBRACE;
+
+component_declaration = "component", identifier;
+component_body = port, {(generic_declaration | arch)};
+
+port = "port", LBRACE, {port_declaration}, RBRACE;
+port_declaration = PORTDIR, TYPE, identifier, EOL;
+
+generic_declaration = TYPE, identifier, EOL;
+
+arch = "arch", [identifier], LBRACE, arch_body, RBRACE;
+arch_body = {(signal_declaration | signal_assignment | component_instantiation | connect | process | generate)};
+
+signal_declaration = "signal", TYPE, identifier, EOL;
+
+signal_assignment = identifier, SIGASSIGN, expression, EOL;
+
+component_instantiation = identifier, identifier, ASSIGN, "new", identifier, LPAREN, generic_list, RPAREN, EOL;
+
+generic_list =
+
+identifier = ID {(".", ID)};
