@@ -22,6 +22,12 @@ signal_assignment = identifier, SIGASSIGN, expression, EOL;
 
 component_instantiation = identifier, identifier, ASSIGN, "new", identifier, LPAREN, generic_list, RPAREN, EOL;
 
-generic_list =
+generic_list = generic_assign, {(",", generic_assign)};
+
+generic_assign = identifier ASSIGN constant;
 
 identifier = ID {(".", ID)};
+
+constant = BOOLCONST | BININTCONST | HEXINTCONST | DECINTCONST | BINVECCONST | HEXVECCONST | ID;
+
+(*TODO: define connect, process, and generate blocks*)
