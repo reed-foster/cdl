@@ -16,20 +16,26 @@ component = component_declaration, LBRACE, component_body, RBRACE;
                 signal_assignment = identifier, SIGASSIGN, expression, EOL;
                 component_instantiation = identifier, identifier, ASSIGN, "new", identifier, LPAREN, generic_list, RPAREN, EOL;
                     generic_list = generic_assign, {(",", generic_assign)};
-                        generic_assign = [identifier ASSIGN] constant;
+                        generic_assign = [identifier ASSIGN], constant;
 
-identifier = ID {(".", ID)};
+identifier = ID, {(".", ID)};
 constant = BOOLCONST | BININTCONST | HEXINTCONST | DECINTCONST | BINVECCONST | HEXVECCONST | ID;
+boolop = OR | AND | XOR;
+relop = LT | GT | LE | GE | EQ | NE;
+addop = ADD | SUB;
+bitwiseadd = BITWISEOR | BITWISENOR;
+mulop = MUL | DIV | MOD;
+bitwisemul = BITWISEAND | BITWISENAND | BITWISEXOR | BITWISEXNOR;
 
 (* Expression definition *)
-expression = boolexpr [TERNQ expression TERNSEP expression];
-boolexpr = boolfactor [boolop boolexpr];
-boolfactor = [NOT] relation;
-relation = BOOLCONST | (sum [relop sum]);
-sum = product [(addop | bitwiseadd) sum];
-product = factor [(mulop | bitwisemul) product];
-factor = (SUB | BITWISENOT) factor | power;
-power = term [EXP power];
-term = constant | LPAREN expression RPAREN;
+expression = boolexpr, [TERNQ, expression, TERNSEP, expression];
+boolexpr = boolfactor, [boolop, boolexpr];
+boolfactor = [NOT], relation;
+relation = BOOLCONST | (sum, [relop, sum]);
+sum = product, [(addop | bitwiseadd), sum];
+product = factor, [(mulop | bitwisemul), product];
+factor = (SUB | BITWISENOT), factor | power;
+power = term, [EXP, power];
+term = constant | LPAREN, expression, RPAREN;
 
-(* TODO: define connect, process, and generate blocks *)
+(* TODO: define process, and generate blocks *)

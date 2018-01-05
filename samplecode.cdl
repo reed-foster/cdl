@@ -30,12 +30,12 @@ component CompName
 			signalIdentifier <= signalExpression; //signal expression can be composed of unary, binary, and ternary operations on SIGNALS 
 		}
 
-		Comptype compidentifier = new Comptype(genericsAssignmentList);
+		Comptype compidentifier1 = new Comptype(genericsAssignmentList);
+		Comptype compidentifier2 = new Comptype(); //when no generics are passed to constructor, generics are designed default values
 
-		connect
-		{
-			compidentifier.outport <= compidentifier.inport;
-		}
+		//connection between subcomponents
+		compidentifier1.inport <= compidentifier2.output;
+		compidentifier2.inport <= signalIdentifier;
 
 		signalIdentifier <= signalIdentifier binOperator signalIdentifier; //operator can be *, /, +, -, and, or, nand, nor, xor, xnor, etc. binaryOperators only work on primitive types
 		signalIdentifier <= unaryOperator bitExtend(signalIdentifier, endwidth); //bitExtend can be signed or unsigned
