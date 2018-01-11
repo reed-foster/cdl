@@ -48,7 +48,7 @@ component CompName
 			//the genericBooleanExpression is a boolean expression that uses only generic fields, and therefore can be evaluated at compile-time
 		}
 
-		generate for(int index; booleanStopExpression; incdecExpression)
+		generate for(variable int index; booleanStopExpression; incdecExpression)
 		{
 			//similar to generate if, but uses a for loop and has an index variable that is visible within the scope of the loops
 		}
