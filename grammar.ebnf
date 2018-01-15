@@ -15,10 +15,10 @@ component = component_declaration, LBRACE, component_body, RBRACE;
                 signal_declaration = "signal", type, identifier, EOL;
                 signal_assignment = identifier, SIGASSIGN, expression, EOL;
                 component_instantiation = identifier, identifier, ASSIGN, "new", identifier, LPAREN, generic_list, RPAREN, EOL;
-                    generic_list = generic_assign, {(",", generic_assign)};
+                    generic_list = generic_assign, {(COMMA, generic_assign)};
                         generic_assign = [identifier ASSIGN], constant;
                 process = "process", LPAREN, sensitivity_list, RPAREN, LBRACE, process_body, RBRACE;
-                    sensitivity_list = identifier, {(",", identifier)};
+                    sensitivity_list = identifier, {(COMMA, identifier)};
                     process_body = {(variable_declaration | variable_assignment | signal_assignment | conditional_block | for_loop | while_loop)};
                         variable_declaration = "variable", type, identifier, EOL;
                         variable_assigment = identifier, VARASSIGN, expression, EOL;
@@ -30,7 +30,7 @@ component = component_declaration, LBRACE, component_body, RBRACE;
                     generate_for = "generate", "for", LPAREN, variable_declaration, EOL, boolexpr, EOL, expression, RPAREN, LBRACE, [generate_body], RBRACE;
                         generate_body = {signal_assignment}; (* This needs to be more restrictive I think *)
 
-identifier = ID, {(".", ID)};
+identifier = ID, {(PERIOD, ID)};
 constant = BOOLCONST | BININTCONST | HEXINTCONST | DECINTCONST | BINVECCONST | HEXVECCONST | ID;
 portdir = "input" | "output";
 type = "int" | "vec" | "bool";
@@ -51,6 +51,3 @@ product = factor, [(mulop | bitwisemul), product];
 factor = (SUB | BITWISENOT), factor | power;
 power = term, [EXP, power];
 term = constant | LPAREN, expression, RPAREN;
-
-
-
