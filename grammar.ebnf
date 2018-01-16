@@ -28,7 +28,7 @@ component = component_declaration, LBRACE, component_body, RBRACE;
                 generate = generate_if | generate_for;
                     generate_if = "generate", "if", LPAREN, boolexpr, RPAREN, LBRACE, [generate_body], RBRACE;
                     generate_for = "generate", "for", LPAREN, variable_declaration, EOL, boolexpr, EOL, expression, RPAREN, LBRACE, [generate_body], RBRACE;
-                        generate_body = {signal_assignment}; (* This needs to be more restrictive I think *)
+                        generate_body = {signal_assignment};
 
 identifier = ID, [(PERIOD, ID)];
 constant = BOOLCONST | BININTCONST | HEXINTCONST | DECINTCONST | BINVECCONST | HEXVECCONST | ID;
