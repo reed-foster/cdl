@@ -114,7 +114,7 @@ class Parser(object):
             return self.constant()
         if token.type == LPAREN:
             self.eat(LPAREN)
-            node = self.expression()
+            node = UnaryOp(Token('PAREN', '()'), self.expression())
             self.eat(RPAREN)
             return node
         if token.type == ID:

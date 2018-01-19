@@ -16,14 +16,19 @@ class Visitor(object):
         raise Exception('no visit{} method'.format(type(node).__name__))
 
     def visitTernaryOp(self, node, depth):
-        print node.right.token
-        return 'ternary ?\n' + '  ' * depth + self.visit(node.boolean, depth + 1) + '\n' + '  ' * depth + self.visit(node.left, depth + 1) + '\n' + '  ' * depth + self.visit(node.right, depth + 1)
+        output = '(' + self.visit(node.left, depth + 1) + ') when (' + self.visit(node.boolean, depth + 1) + ') else (' + self.visit(node.right, depth + 1) + ')'
+        return output
 
     def visitBinaryOp(self, node, depth):
-        return 'binary ' + node.op.value + '\n' + '  ' * depth + self.visit(node.left, depth + 1) + '\n' + '  ' * depth + self.visit(node.right, depth + 1)
+        output = self.visit(node.left, depth + 1) + ' ' + node.op.value + ' ' + self.visit(node.right, depth + 1)
+        return output
 
     def visitUnaryOp(self, node, depth):
-        return 'unary ' + node.op.value + '\n' + '  ' * depth + self.visit(node.right, depth + 1)
+        if node.op.type == 'PAREN':
+            output = '(' + self.visit(node.right, depth + 1) + ')'
+        else:
+            output = node.op.value + ' ' + self.visit(node.right, depth + 1)
+        return output
 
     def visitCompInst(self, node, depth):
         return 'compinst ' + self.visit(node.name, depth + 1) + '\n' + '  ' * depth + self.visit(node.generics, depth + 1)
@@ -65,10 +70,10 @@ class Visitor(object):
         return string
 
     def visitIdentifier(self, node, depth):
-        return 'id ' + node.token.value
+        return node.token.value
 
     def visitConstant(self, node, depth):
-        return 'const ' + node.token.value
+        return node.token.value
 
 def test():
 
