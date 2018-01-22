@@ -171,16 +171,31 @@ class Parser(object):
     def parse(self):
         while self.current_token.type != EOF:
             self.grammar.append(self.rule())
-        return self.grammar
 
     def rule(self):
         left = self.current_token
         self.eat(NONTERMINAL)
         op = self.current_token
         self.eat(ASSIGN)
-        return BinaryOp(left, op, self.expression())
+        node = BinaryOp(left, op, self.expression())
+        self.eat(EOL)
+        return node
 
     def expression(self):
+        node = self.concatenation()
+        if self.current_token.type == PIPE:
+            token = self.current_token
+            self.eat(token.type)
+            node = BinaryOp(node, token, self.expression())
+        return node
+
+    def concatenation(self):
+        node = self.factor()
+        if self.current_token.type == COMMA:
+            token = self.current_token
+            self.eat(token.type)
+            node = BinaryOp(node, token, self.concatenation())
+        return node
 
     def factor(self):
         token = self.current_token
@@ -196,7 +211,7 @@ class Parser(object):
             return node
         if token.type == LPAREN:
             self.eat(LPAREN)
-            node = self.expression()
+            node = UnaryOp(Token('GRP', '()'), self.expression())
             self.eat(RPAREN)
             return node
         if token.type == TERMINAL:
@@ -212,8 +227,7 @@ lex = Lexer (
     boolfactor = [NOT], (relation | BOOLCONST | identifier);'''
 )
 
-while True:
-    tok = lex.getNextToken()
-    print tok
-    if tok.type == EOF:
-        break
+parse = Parser(lex)
+
+parse.parse()
+
