@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # lex.py - Reed Foster
 # Software for automated generation of a lexer and parser from grammar
 
@@ -54,6 +56,7 @@ class Lexer(object):
     def terminal(self):
         result = ''
         if self.current_char == '"':
+            self.advance()
             token = self.string()
         else:
             while self.current_char is not None and self.current_char.isupper():
@@ -71,7 +74,7 @@ class Lexer(object):
         return token
 
     def string(self):
-        result = ''
+        result = '"'
         while self.current_char is not None and self.current_char != '"':
             result += self.current_char
             self.advance()
@@ -221,8 +224,53 @@ class Parser(object):
             self.eat(NONTERMINAL)
             return Nonterminal(token)
 
+
+class LanguageGenerator(object):
+
+    def __init__(self, grammar):
+        self.tokens = ""
+        self.reservedkeys = "RESERVED_KEYWORDS = {"
+        self.tokenclass = 'class Token(object):\n\tdef __init__(self, type, value):\n\t\tself.type = type\n\t\tself.value = value\n\n\tdef __str__(self):\n\t\treturn \'Token({type}, "{value}")\'.format(type=self.type, value=self.value.__str__())'
+        self.lexerclass = 'class Lexer(object):\n\tdef __init__(self, text):\n\t\tself.text = text\n\t\tself.pos = 0\n\t\tself.current_char = self.text[self.pos]'
+        self.ASTclasses = 
+        self.parserclass = 
+        self.parser = Parser(Lexer(grammar))
+        self.parser.parse()
+        for rule in self.parser.grammar:
+            self.visit(rule)
+
+
+
+    def visit(self, node):
+        methodname = 'visit' + type(node).__name__
+        visitorfunction = getattr(self, methodname, self.genericvisit)
+        return visitorfunction(node)
+
+    def genericvisit(self, node):
+        raise Exception('no visit{} method'.format(type(node).__name__))
+
+    def visitBinaryOp(self, node):
+        if node.token.type = ASSIGN:
+
+        else:
+
+    #def visitUnaryOp(self, node):
+
+    def visitTerminal(self, node):
+        if node.token.value[0] == '"':
+            sep = ''
+            if self.reservedkeys[-1] == '{': #need to distinguish between first and subsequent keywords
+                sep = '\n    '
+            else:
+                sep = ',\n    '
+            self.reservedkeys += sep + node.token.value + ' : Token(' + node.token.value.upper() + ', ' + node.token.value + ')'
+        else:
+            self.tokens += "\n" + node.token.value + " = '" + node.token.value + "'"
+
+    #def visitNonterminal(self, node):
+
 lex = Lexer (
-    '''expression = (boolexpr, TERNQ, expression, TERNSEP, expression) | sum;
+    '''expression = ("boolexpr", TERNQ, expression, TERNSEP, expression) | sum;
     boolexpr = boolfactor, [boolop, boolexpr];
     boolfactor = [NOT], (relation | BOOLCONST | identifier);'''
 )
@@ -231,3 +279,14 @@ parse = Parser(lex)
 
 parse.parse()
 
+lang = LanguageGenerator('''expression = ("boolexpr", "TERNQ", "expression", TERNSEP, expression) | sum;
+    boolexpr = boolfactor, [boolop, boolexpr];
+    boolfactor = [NOT], (relation | BOOLCONST | identifier);''')
+
+lang.parser.parse()
+lang.visitTerminal(lang.parser.grammar[0].right.left.operand.left)
+lang.visitTerminal(lang.parser.grammar[0].right.left.operand.right.left)
+lang.visitTerminal(lang.parser.grammar[0].right.left.operand.right.right.left)
+print lang.reservedkeys
+
+tokenclass =
