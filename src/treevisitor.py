@@ -7,6 +7,10 @@ from lexer import *
 from ast import *
 
 class Visitor(object):
+
+    def __init__(self):
+        self.compname = ''
+
     def visit(self, node, depth):
         methodname = 'visit' + type(node).__name__
         visitorfunction = getattr(self, methodname, self.genericvisit)
@@ -14,6 +18,9 @@ class Visitor(object):
 
     def genericvisit(self, node, depth):
         raise Exception('no visit{} method'.format(type(node).__name__))
+
+    def indent(self, string):
+        return '    ' + string.replace('\n', '\n    ')
 
     def visitTernaryOp(self, node, depth):
         output = '(' + self.visit(node.left, depth + 1) + ') when (' + self.visit(node.boolean, depth + 1) + ') else (' + self.visit(node.right, depth + 1) + ')'
@@ -34,37 +41,53 @@ class Visitor(object):
         return 'compinst ' + self.visit(node.name, depth + 1) + '\n' + '  ' * depth + self.visit(node.generics, depth + 1)
 
     def visitSignal(self, node, depth):
-        return 'sigdec ' + self.visit(node.name, depth + 1) + ' type = ' + node.sigtype.value
+        return 'signal ' + self.visit(node.name, depth + 1) + ' : ' + node.sigtype.value
 
     def visitVariable(self, node, depth):
-        return 'vardec ' + self.visit(node.name, depth + 1) + ' type = ' + node.vartype.value
+        return 'variable ' + self.visit(node.name, depth + 1) + ' : ' + node.vartype.value
 
     def visitGeneric(self, node, depth):
-        return 'gendec ' + self.visit(node.name, depth + 1) + ' type = ' + node.gentype.value
+        return self.visit(node.name, depth + 1) + ' : ' + node.gentype.value
 
     def visitPortList(self, node, depth):
-        string = 'portlist'
+        ports = ''
         for port in node.children:
-            string += '\n' + '  ' * depth + self.visit(port, depth + 1)
+            sep = ';\n' if len(ports) > 1 else ''
+            ports += sep + self.visit(port, depth + 1)
+        string = 'port\n(\n' + self.indent(ports) + '\n);'
         return string
 
     def visitPort(self, node, depth):
-        return 'portdec ' + self.visit(node.name, depth + 1) + ' type = ' + node.porttype.value + ' dir = ' + node.direction.value
+        return self.visit(node.name, depth + 1) + ' : ' + node.direction.value[:-3] + ' ' * (7 - len(node.direction.value)) + node.porttype.value
 
     def visitComponent(self, node, depth):
-        return 'component ' + self.visit(node.name, depth + 1) + '\n' + '  ' * (depth + 1) + self.visit(node.body, depth + 2)
+        self.compname = self.visit(node.name, depth + 1)
+        return 'library ieee;\nuse ieee.std_logic_1164.all;\nuse ieee.numeric_std.all;\n\nentity ' + self.visit(node.name, depth + 1) + '\n' + self.visit(node.body, depth + 1)
 
     def visitComponentBody(self, node, depth):
-        string = 'componentbody'
+        string = ''
+        generics = ''
+        port = ''
         for item in node.children:
-            string += '\n' + '  ' * depth + self.visit(item, depth + 1)
+            if type(item).__name__ == 'Generic':
+                sep = ';\n' if len(generics) > 1 else ''
+                generics += sep + self.visit(item, depth + 1)
+            elif type(item).__name__ == 'PortList':
+                port = self.visit(item, depth + 1)
+            else:
+                arch = self.visit(item, depth + 1)
+        string += 'generic\n(\n' + self.indent(generics) + '\n);' if len(generics) > 1 else ''
+        string += '\n' + port
+        string = self.indent(string) + '\nend entity;'
+        string += '\n\n' + arch
         return string
 
     def visitArch(self, node, depth):
-        return 'arch ' + self.visit(node.name, depth + 1) + '\n' + '  ' * depth + self.visit(node.body, depth + 1)
+        return 'architecture ' + self.visit(node.name, depth + 1) + ' of ' + self.compname + ' is\n' + self.visit(node.body, depth + 1) + '\nend architecture;'    
 
     def visitArchBody(self, node, depth):
         string = 'archbody'
+        sigdecs = ''
         for item in node.children:
             string += '\n' + '  ' * depth + self.visit(item, depth + 1)
         return string
