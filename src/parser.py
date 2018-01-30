@@ -207,7 +207,7 @@ class Parser(object):
     # Parse architecture
     def arch(self):
         archname = Token(ID, 'implementation')
-        if self.current_token == ID:
+        if self.current_token.type == ID:
             archname = self.current_token
             self.eat(ID)
         self.eat('ARCH')
