@@ -38,7 +38,9 @@ class Visitor(object):
         return output
 
     def visitCompInst(self, node, depth):
-        return 'compinst ' + self.visit(node.name, depth + 1) + '\n' + '  ' * depth + self.visit(node.generics, depth + 1)
+        genericmap = 'generic map\n(\n' + self.indent(self.visit(node.generics, depth + 1)) + '\n)'
+        portmap = 'port map'
+        return self.visit(node.name, depth + 1) + ' : ' + self.visit(node.comptype, depth + 1) + '\n' + self.indent(genericmap) + '\n' + self.indent(portmap)
 
     def visitSignal(self, node, depth):
         return 'signal ' + self.visit(node.name, depth + 1) + ' : ' + node.sigtype.value
@@ -86,11 +88,16 @@ class Visitor(object):
         return 'architecture ' + self.visit(node.name, depth + 1) + ' of ' + self.compname + ' is\n' + self.visit(node.body, depth + 1) + '\nend architecture;'    
 
     def visitArchBody(self, node, depth):
-        string = 'archbody'
+        body = ''
         sigdecs = ''
         for item in node.children:
-            string += '\n' + '  ' * depth + self.visit(item, depth + 1)
-        return string
+            if type(item).__name__ == 'Signal':
+                sep = '\n' if len(sigdecs) > 1 else ''
+                sigdecs += sep + self.visit(item, depth + 1) + ';'
+            else:
+                sep = '\n' if len(body) > 1 else ''
+                body += sep + self.visit(item, depth + 1) + ';'
+        return self.indent(sigdecs) + '\nbegin\n' + self.indent(body)
 
     def visitIdentifier(self, node, depth):
         return node.token.value
