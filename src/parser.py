@@ -10,10 +10,6 @@ class Parser(object):
     def __init__(self, lexer):
         self.lexer = lexer
         self.current_token = self.lexer.getNextToken()
-        # dictionaries that contain keys (name of variable/signal) and corresponding values (type)
-        self.genlist = {}
-        self.varlist = {}
-        self.siglist = {}
 
     # wrapper for component method
     def parse(self):
@@ -147,7 +143,6 @@ class Parser(object):
         token = self.current_token
         self.eat(ID)
         self.eat(EOL)
-        self.genlist[token.value] = gentype.value
         return Generic(Identifier(token), gentype)
 
     def sigdeclare(self):
@@ -157,7 +152,6 @@ class Parser(object):
         token = self.current_token
         self.eat(ID)
         self.eat(EOL)
-        self.siglist[token.value] = sigtype.value
         return Signal(Identifier(token), sigtype)
 
     def vardeclare(self):
@@ -167,7 +161,6 @@ class Parser(object):
         token = self.current_token
         self.eat(ID)
         self.eat(EOL)
-        self.varlist[token.value] = vartype.value
         return Variable(Identifier(token), vartype)
 
     # Parse entire source
@@ -297,9 +290,5 @@ def test():
     tree = parse.component()
 
     print tree
-    print ''
-    print parse.genlist
-    print parse.varlist
-    print parse.siglist
 
 #test()
