@@ -124,7 +124,9 @@ class Parser(object):
         token = self.current_token
         if token.type == PERIOD:
             self.eat(PERIOD)
-            return BinaryOp(left, token, self.identifier())
+            right = self.current_token
+            self.eat(ID)
+            return BinaryOp(Identifier(left), token, Identifier(right))
         return Identifier(left)
 
     def constant(self):
