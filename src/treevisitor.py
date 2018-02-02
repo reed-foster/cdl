@@ -10,6 +10,10 @@ class Visitor(object):
 
     def __init__(self):
         self.compname = ''
+        self.subcomps = {}
+        self.signals = {}
+        self.tempsigs = {}
+        self.portmaps = {}
 
     def visit(self, node, depth):
         methodname = 'visit' + type(node).__name__
@@ -38,12 +42,21 @@ class Visitor(object):
         return output
 
     def visitCompInst(self, node, depth):
-        genericmap = 'generic map\n(\n' + self.indent(self.visit(node.generics, depth + 1)) + '\n)'
-        portmap = 'port map'
-        return self.visit(node.name, depth + 1) + ' : ' + self.visit(node.comptype, depth + 1) + '\n' + self.indent(genericmap) + '\n' + self.indent(portmap)
+        name = self.visit(node.name, depth + 1)
+        comptype = self.visit(node.comptype, depth + 1)
+        genericmap = 'generic map\n(\n' + self.indent(',\n'.join(self.visit(node.generics, depth + 1).split(' , '))) + '\n)'
+        portmap = ''
+        for port in self.portmaps[name]:
+            sep = ',\n' if len(portmap) > 1 else ''
+            portmap += sep + port + ' => ' + self.portmaps[name][port]
+        portmap = 'port map\n(\n' + self.indent(portmap) + '\n)'
+        return name + ' : ' + comptype + '\n' + self.indent(genericmap) + '\n' + self.indent(portmap)
 
     def visitSignal(self, node, depth):
-        return 'signal ' + self.visit(node.name, depth + 1) + ' : ' + node.sigtype.value
+        name = self.visit(node.name, depth + 1)
+        sigtype = node.sigtype.value
+        self.signals[name] = sigtype
+        return 'signal ' + name + ' : ' + sigtype
 
     def visitVariable(self, node, depth):
         return 'variable ' + self.visit(node.name, depth + 1) + ' : ' + node.vartype.value
@@ -90,14 +103,56 @@ class Visitor(object):
     def visitArchBody(self, node, depth):
         body = ''
         sigdecs = ''
+        compdecs = ''
+        compinsts = ''
+        # initial pass for compiling list of compinsts and portmaps
+        for item in node.children:
+            if type(item).__name__ == 'CompInst':
+                name = self.visit(item.name, depth + 1)
+                self.subcomps[name] = self.visit(item.comptype, depth + 1)
+                self.portmaps[name] = {}
+        # replace instances of ports with temp signals
+        for item in node.children:
+            if type(item).__name__ == 'BinaryOp' and item.token.type == SIGASSIGN:
+                # current line is a signal assignment
+                # TODO: check sources for subcomponents to get port types and widths as well as verify port direction
+                if type(item.left).__name__ == 'BinaryOp' and item.left.token.type == PERIOD:
+                    # left side of assingment is a subcomponent port
+                    identifier = self.visit(item.left, depth + 1)
+                    comp, port = identifier.split(' . ')
+                    signalname = '_'.join((comp, port))
+                    self.tempsigs[signalname] = Signal(Identifier(Token(ID, signalname)), Token(TYPE, 'placeholder'))
+                    self.portmaps[comp][port] = signalname
+                    node.children[node.children.index(item)].left = Identifier(Token(ID, signalname)) # replace port with temp signal
+                else:
+                    right = '.'.join(self.visit(item.right, depth + 1).split(' . '))
+                    if '.' in right:
+                        # right side of assignment has a subcomponent port
+                        # janky solution for now: replace right side with Identifier node containing string of parsed right side of assingment
+                        for term in right.split(' '):
+                            if '.' in term:
+                                comp, port = term.split('.')
+                                signalname = '_'.join((comp, port))
+                                self.tempsigs[signalname] = Signal(Identifier(Token(ID, signalname)), Token(TYPE, 'placeholder'))
+                                self.portmaps[comp][port] = signalname
+                        node.children[node.children.index(item)].right = Identifier(Token(ID, right.replace('.', '_')))
+
+        # add signal declarations for temp signals
+        for signal in self.tempsigs:
+            sep = '\n' if len(sigdecs) > 1 else ''
+            sigdecs += sep + self.visit(self.tempsigs[signal], depth + 1) + ';'
+        # generate vhdl archbody source
         for item in node.children:
             if type(item).__name__ == 'Signal':
                 sep = '\n' if len(sigdecs) > 1 else ''
                 sigdecs += sep + self.visit(item, depth + 1) + ';'
+            elif type(item).__name__ == 'CompInst':
+                sep = '\n' if len(compinsts) > 1 else ''
+                compinsts += sep + self.visit(item, depth + 1) + ';'
             else:
                 sep = '\n' if len(body) > 1 else ''
                 body += sep + self.visit(item, depth + 1) + ';'
-        return self.indent(sigdecs) + '\nbegin\n' + self.indent(body)
+        return self.indent(sigdecs) + '\n' + '\nbegin\n' + self.indent(compinsts) + '\n' + self.indent(body)
 
     def visitIdentifier(self, node, depth):
         return node.token.value
@@ -127,11 +182,9 @@ def test():
         arch
         {
             signal vec foo;
-            foo <= fox < banana;
-            cat <= (5 <= 3) ? fox : banana;
-            moo <= fox - banana and 2;
-            CompType compinst = new CompType(lol = 3, foo = 5, banana = x"4");
-            foo <= ((5 xor 7 > foo) ^ true) ? moo : fox - (7 * banana) + 2;
+            CompType foobar = new CompType(gen1 = 4, gen2 = x"5");
+            foo <= foobar.foobarout + 5;
+            foobar.foobarin <= foo;
         }
     }
     ''')
@@ -140,9 +193,5 @@ def test():
     tree = parse.component()
 
     print vis.visit(tree, 0)
-    print ''
-    print parse.genlist
-    print parse.varlist
-    print parse.siglist
 
 test()
