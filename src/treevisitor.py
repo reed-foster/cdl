@@ -31,7 +31,8 @@ class Visitor(object):
         return output
 
     def visitBinaryOp(self, node, depth):
-        output = self.visit(node.left, depth + 1) + ' ' + node.op.value + ' ' + self.visit(node.right, depth + 1)
+        sep = '' if node.op.value == '.' else ' '
+        output = self.visit(node.left, depth + 1) + sep + node.op.value + sep + self.visit(node.right, depth + 1)
         return output
 
     def visitUnaryOp(self, node, depth):
@@ -44,7 +45,7 @@ class Visitor(object):
     def visitCompInst(self, node, depth):
         name = self.visit(node.name, depth + 1)
         comptype = self.visit(node.comptype, depth + 1)
-        genericmap = 'generic map\n(\n' + self.indent(',\n'.join(self.visit(node.generics, depth + 1).split(' , '))) + '\n)'
+        genericmap = 'generic map\n(\n' + self.indent(self.visit(node.generics, depth + 1).replace(' , ', ',\n').replace(' = ', ' => ')) + '\n)'
         portmap = ''
         for port in self.portmaps[name]:
             sep = ',\n' if len(portmap) > 1 else ''
@@ -101,6 +102,7 @@ class Visitor(object):
         return 'architecture ' + self.visit(node.name, depth + 1) + ' of ' + self.compname + ' is\n' + self.visit(node.body, depth + 1) + '\nend architecture;'    
 
     def visitArchBody(self, node, depth):
+        # This method can probably be optimized (needs at least 2 passes; 4 right now, might be able to make that 3)
         body = ''
         sigdecs = ''
         compdecs = ''
@@ -119,13 +121,13 @@ class Visitor(object):
                 if type(item.left).__name__ == 'BinaryOp' and item.left.token.type == PERIOD:
                     # left side of assingment is a subcomponent port
                     identifier = self.visit(item.left, depth + 1)
-                    comp, port = identifier.split(' . ')
+                    comp, port = identifier.split('.')
                     signalname = '_'.join((comp, port))
                     self.tempsigs[signalname] = Signal(Identifier(Token(ID, signalname)), Token(TYPE, 'placeholder'))
                     self.portmaps[comp][port] = signalname
                     node.children[node.children.index(item)].left = Identifier(Token(ID, signalname)) # replace port with temp signal
                 else:
-                    right = '.'.join(self.visit(item.right, depth + 1).split(' . '))
+                    right = self.visit(item.right, depth + 1)
                     if '.' in right:
                         # right side of assignment has a subcomponent port
                         # janky solution for now: replace right side with Identifier node containing string of parsed right side of assingment
@@ -152,7 +154,7 @@ class Visitor(object):
             else:
                 sep = '\n' if len(body) > 1 else ''
                 body += sep + self.visit(item, depth + 1) + ';'
-        return self.indent(sigdecs) + '\n' + '\nbegin\n' + self.indent(compinsts) + '\n' + self.indent(body)
+        return self.indent(sigdecs) + '\nbegin\n' + self.indent(compinsts) + '\n' + self.indent(body)
 
     def visitIdentifier(self, node, depth):
         return node.token.value
