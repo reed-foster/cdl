@@ -57,13 +57,16 @@ class Visitor(object):
         name = self.visit(node.name, depth + 1)
         sigtype = node.sigtype.value
         self.signals[name] = sigtype
-        return 'signal ' + name + ' : ' + sigtype
+        width = '' if node.width is None else '(' + str(int(node.width) - 1) + ' downto 0)'
+        return 'signal ' + name + ' : ' + sigtype + width
 
     def visitVariable(self, node, depth):
-        return 'variable ' + self.visit(node.name, depth + 1) + ' : ' + node.vartype.value
+        width = '' if node.width is None else '(' + str(int(node.width) - 1) + ' downto 0)'
+        return 'variable ' + self.visit(node.name, depth + 1) + ' : ' + node.vartype.value + width
 
     def visitGeneric(self, node, depth):
-        return self.visit(node.name, depth + 1) + ' : ' + node.gentype.value
+        width = '' if node.width is None else '(' + str(int(node.width) - 1) + ' downto 0)'
+        return self.visit(node.name, depth + 1) + ' : ' + node.gentype.value + width
 
     def visitPortList(self, node, depth):
         ports = ''
@@ -74,7 +77,8 @@ class Visitor(object):
         return string
 
     def visitPort(self, node, depth):
-        return self.visit(node.name, depth + 1) + ' : ' + node.direction.value[:-3] + ' ' * (7 - len(node.direction.value)) + node.porttype.value
+        width = '' if node.width is None else '(' + str(int(node.width) - 1) + ' downto 0)'
+        return self.visit(node.name, depth + 1) + ' : ' + node.direction.value[:-3] + ' ' * (7 - len(node.direction.value)) + node.porttype.value + width
 
     def visitComponent(self, node, depth):
         self.compname = self.visit(node.name, depth + 1)
@@ -130,7 +134,7 @@ class Visitor(object):
                     right = self.visit(item.right, depth + 1)
                     if '.' in right:
                         # right side of assignment has a subcomponent port
-                        # janky solution for now: replace right side with Identifier node containing string of parsed right side of assingment
+                        # janky solution for now: replace right side with Identifier node containing string of generated VHDL
                         for term in right.split(' '):
                             if '.' in term:
                                 comp, port = term.split('.')
@@ -170,14 +174,14 @@ def test():
     '''
     component CompName
     {
-        int genericint;
+        vec generic1[4];
         bool genericbool;
-        vec genericvec;
+        vec generic2[2];
 
         port
         {
-            input int inputint;
-            input vec inputvec;
+            input uint inputint;
+            input vec inputvec[4];
             output bool outputbool;
         }
 

@@ -221,7 +221,7 @@ class Lexer(object):
                 self.advance()
                 return Token(NOT, '!')
 
-            # Tokenize braces/parentheses
+            # Tokenize braces/parentheses/brackets
             if self.current_char == '(':
                 self.advance()
                 return Token(LPAREN, '(')
@@ -234,6 +234,12 @@ class Lexer(object):
             if self.current_char == '}':
                 self.advance()
                 return Token(RBRACE, '}')
+            if self.current_char == '[':
+                self.advance()
+                return Token(LBRACKET, '[')
+            if self.current_char == ']':
+                self.advance()
+                return Token(RBRACKET, ']')
 
             self.error()
 

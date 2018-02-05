@@ -9,7 +9,7 @@ SIGNAL, VARIABLE = ('SIGNAL', 'VARIABLE')
 DECINTCONST, BININTCONST, HEXINTCONST, BINVECCONST, HEXVECCONST, BOOLCONST = ('DECINTCONST', 'BININTCONST', 'HEXINTCONST', 'BINVECCONST', 'HEXVECCONST', 'BOOLCONST')
 ADD, SUB, MUL, DIV, MOD, EXP = ('ADD', 'SUB', 'MUL', 'DIV', 'MOD', 'EXP')
 AND, OR, XOR, NOT = ('AND', 'OR', 'XOR', 'NOT')
-LPAREN, RPAREN, LBRACE, RBRACE = ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE')
+LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET = ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'LBRACKET', 'RBRACKET')
 TERNQ, TERNSEP = ('TERNQ', 'TERNSEP')
 LT, GT, LE, GE, EQ, NE = ('LT', 'GT', 'LE', 'GE', 'EQ', 'NE')
 EOF, EOL = ('EOF', 'EOL')
@@ -33,6 +33,7 @@ RESERVED_KEYWORDS = {
     'input' : Token(PORTDIR, 'input'),
     'output' : Token(PORTDIR, 'output'),
     'int' : Token(TYPE,'int'),
+    'uint' : Token(TYPE, 'uint'),
     'vec' : Token(TYPE,'vec'),
     'bool' : Token(TYPE,'bool'),
     'true' : Token(BOOLCONST, 'true'),

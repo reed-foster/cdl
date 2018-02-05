@@ -137,15 +137,27 @@ class Parser(object):
             self.eat(ID)
         return Constant(token)
 
+    # Returns the width of the vector (in bits)
+    def getvecwidth(self):
+        if self.current_token.type == LBRACKET:
+            self.eat(LBRACKET)
+            width = self.current_token.value
+            self.eat(DECINTCONST)
+            self.eat(RBRACKET)
+            return int(width)
+        return 1
 
     # Parsing of declarations
     def gendeclare(self):
         gentype = self.current_token
+        print gentype
+        print self.current_token
         self.eat(TYPE)
         token = self.current_token
         self.eat(ID)
+        width = self.getvecwidth() if gentype.value == 'vec' else None
         self.eat(EOL)
-        return Generic(Identifier(token), gentype)
+        return Generic(Identifier(token), gentype, width)
 
     def sigdeclare(self):
         self.eat(SIGNAL)
@@ -153,8 +165,9 @@ class Parser(object):
         self.eat(TYPE)
         token = self.current_token
         self.eat(ID)
+        width = self.getvecwidth() if sigtype.value == 'vec' else None
         self.eat(EOL)
-        return Signal(Identifier(token), sigtype)
+        return Signal(Identifier(token), sigtype, width)
 
     def vardeclare(self):
         self.eat(VARIABLE)
@@ -162,8 +175,9 @@ class Parser(object):
         self.eat(TYPE)
         token = self.current_token
         self.eat(ID)
+        width = self.getvecwidth() if vartype.value == 'vec' else None
         self.eat(EOL)
-        return Variable(Identifier(token), vartype)
+        return Variable(Identifier(token), vartype, width)
 
     # Parse entire source
     def component(self):
@@ -193,9 +207,11 @@ class Parser(object):
             self.eat(PORTDIR)
             porttype = self.current_token
             self.eat(TYPE)
-            body.children.append(Port(Identifier(self.current_token), porttype, direction))
+            name = self.current_token
             self.eat(ID)
+            width = self.getvecwidth() if porttype.value == 'vec' else None
             self.eat(EOL)
+            body.children.append(Port(Identifier(name), porttype, direction, width))
         self.eat(RBRACE)
         return body
 

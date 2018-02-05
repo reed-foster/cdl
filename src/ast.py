@@ -31,19 +31,22 @@ class CompInst(AST):
         self.comptype = comptype
 
 class Signal(AST):
-    def __init__(self, name, sigtype):
+    def __init__(self, name, sigtype, width = None):
         self.name = name
         self.sigtype = sigtype
+        self.width = width
 
 class Variable(AST):
-    def __init__(self, name, vartype):
+    def __init__(self, name, vartype, width = None):
         self.name = name
         self.vartype = vartype
+        self.width = width
 
 class Generic(AST):
-    def __init__(self, name, gentype):
+    def __init__(self, name, gentype, width = None):
         self.name = name
         self.gentype = gentype
+        self.width = width
 
 class Constant(AST):
     def __init__(self, token):
@@ -58,10 +61,11 @@ class PortList(AST):
         self.children = []
 
 class Port(AST):
-    def __init__(self, name, porttype, direction):
+    def __init__(self, name, porttype, direction, width = None):
         self.name = name
         self.porttype = porttype
         self.direction = direction
+        self.width = width
 
 class Component(AST):
     def __init__(self, name, body):
