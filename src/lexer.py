@@ -164,7 +164,10 @@ class Lexer(object):
                 return Token(TERNQ, '?')
             if self.current_char == ':':
                 self.advance()
-                return Token(TERNSEP, ':')
+                if self.current_scopetype == IDSCOPE:
+                    return Token(DOWNTO, ':')
+                if self.current_scopetype == OTHERSCOPE:
+                    return Token(TERNSEP, ':')
 
             # Tokenize relational operators
             if self.current_char == '>' and self.peek() == '=':
@@ -240,6 +243,10 @@ class Lexer(object):
             if self.current_char == ']':
                 self.advance()
                 return Token(RBRACKET, ']')
+
+            if self.current_char == '&':
+                self.advance()
+                return Token(CONCAT, '&')
 
             self.error()
 
