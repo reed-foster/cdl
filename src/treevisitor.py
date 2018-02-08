@@ -26,6 +26,9 @@ class Visitor(object):
     def indent(self, string):
         return '    ' + string.replace('\n', '\n    ')
 
+    def removeblanklines(self, string):
+        return '\n'.join([line for line in string.split('\n') if line.rstrip()])
+
     def visitTernaryOp(self, node, depth):
         output = '(' + self.visit(node.left, depth + 1) + ') when (' + self.visit(node.boolean, depth + 1) + ') else (' + self.visit(node.right, depth + 1) + ')'
         return output
@@ -45,23 +48,31 @@ class Visitor(object):
     def visitCompInst(self, node, depth):
         name = self.visit(node.name, depth + 1)
         comptype = self.visit(node.comptype, depth + 1)
-        genericmap = 'generic map\n(\n' + self.indent(self.visit(node.generics, depth + 1).replace(' , ', ',\n').replace(' = ', ' => ')) + '\n)'
+        genericmap = ''
+        if node.generics is not None:
+            genericmap = 'generic map\n(\n' + self.indent(self.visit(node.generics, depth + 1).replace(' , ', ',\n').replace(' = ', ' => ')) + '\n)'
         portmap = ''
         for port in self.portmaps[name]:
             sep = ',\n' if len(portmap) > 1 else ''
             portmap += sep + port + ' => ' + self.portmaps[name][port]
         portmap = 'port map\n(\n' + self.indent(portmap) + '\n)'
-        return name + ' : ' + comptype + '\n' + self.indent(genericmap) + '\n' + self.indent(portmap)
+        return name + ' : ' + comptype + '\n' + (self.indent(genericmap) if genericmap is not None else '') + '\n' + self.indent(portmap)
+
+    def genvecwidth(self, width):
+        try:
+            return str(int(width) - 1)
+        except ValueError:
+            return width + ' - 1'
 
     def visitSignal(self, node, depth):
         name = self.visit(node.name, depth + 1)
         sigtype = node.sigtype.value
         self.signals[name] = sigtype
-        width = '' if node.width is None else '(' + str(int(node.width) - 1) + ' downto 0)'
+        width = '' if node.width is None else '(' + self.genvecwidth(node.width) + ' downto 0)'
         return 'signal ' + name + ' : ' + sigtype + width
 
     def visitVariable(self, node, depth):
-        width = '' if node.width is None else '(' + str(int(node.width) - 1) + ' downto 0)'
+        width = '' if node.width is None else '(' + self.genvecwidth(node.width) + ' downto 0)'
         return 'variable ' + self.visit(node.name, depth + 1) + ' : ' + node.vartype.value + width
 
     def visitGeneric(self, node, depth):
@@ -77,7 +88,7 @@ class Visitor(object):
         return string
 
     def visitPort(self, node, depth):
-        width = '' if node.width is None else '(' + str(int(node.width) - 1) + ' downto 0)'
+        width = '' if node.width is None else '(' + self.genvecwidth(node.width) + ' downto 0)'
         return self.visit(node.name, depth + 1) + ' : ' + node.direction.value[:-3] + ' ' * (7 - len(node.direction.value)) + node.porttype.value + width
 
     def visitComponent(self, node, depth):
@@ -98,12 +109,12 @@ class Visitor(object):
                 arch = self.visit(item, depth + 1)
         string += 'generic\n(\n' + self.indent(generics) + '\n);' if len(generics) > 1 else ''
         string += '\n' + port
-        string = self.indent(string) + '\nend entity;'
+        string = self.removeblanklines(self.indent(string) + '\nend entity;')
         string += '\n\n' + arch
         return string
 
     def visitArch(self, node, depth):
-        return 'architecture ' + self.visit(node.name, depth + 1) + ' of ' + self.compname + ' is\n' + self.visit(node.body, depth + 1) + '\nend architecture;'    
+        return self.removeblanklines('architecture ' + self.visit(node.name, depth + 1) + ' of ' + self.compname + ' is\n' + self.visit(node.body, depth + 1) + '\nend architecture;')
 
     def visitArchBody(self, node, depth):
         # This method can probably be optimized (needs at least 2 passes; 4 right now, might be able to make that 3)
@@ -168,36 +179,77 @@ class Visitor(object):
 
 def test():
 
-    vis = Visitor()
-
-    lex = Lexer(
-    '''
-    component CompName
+    src = '''
+    component XorGate
     {
-        vec generic1[4];
-        bool genericbool;
-        vec generic2[2];
-
         port
         {
-            input uint inputint;
-            input vec inputvec[4];
-            output bool outputbool;
+            input vec A;
+            input vec B;
+            output vec S;
         }
 
         arch
         {
-            signal vec foo;
-            CompType foobar = new CompType(gen1 = 4, gen2 = x"5");
-            foo <= foobar.foobarout + 5;
-            foobar.foobarin <= foo;
+            S <= A xor B;
         }
     }
-    ''')
+
+    component AndGate
+    {
+        port
+        {
+            input vec A;
+            input vec B;
+            output vec S;
+        }
+
+        arch
+        {
+            S <= A and B;
+        }
+    }
+
+    component HalfAdder
+    {
+        port
+        {
+            input vec A;
+            input vec B;
+            output vec S;
+            output vec Co;
+        }
+
+        arch
+        {
+            XorGate XOR = new XorGate();
+            AndGate AND = new AndGate();
+            XOR.A <= A;
+            XOR.B <= B;
+            AND.A <= A;
+            AND.B <= B;
+            S <= XOR.S;
+            Co <= AND.S;
+        }
+    }
+    '''
+
+    #components = ['component' + component for component in src.split('component')]
+
+    vis = Visitor()
+
+    lex = Lexer(src)
     parse = Parser(lex)
 
-    tree = parse.component()
+    complist = parse.parse()
 
-    print vis.visit(tree, 0)
+    for component in complist:
+        print vis.visit(complist[component], 0)
+        vis.compname = ''
+        vis.subcomps = {}
+        vis.signals = {}
+        vis.tempsigs = {}
+        vis.portmaps = {}
+        print '\n'
 
 test()

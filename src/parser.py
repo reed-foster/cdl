@@ -10,10 +10,14 @@ class Parser(object):
     def __init__(self, lexer):
         self.lexer = lexer
         self.current_token = self.lexer.getNextToken()
+        self.complist = {} # This doesn't work, probably should do multisource from above treevisitor level
 
     # wrapper for component method
     def parse(self):
-        return self.component()
+        while self.current_token.type == 'COMPONENT':
+            comp = self.component()
+            self.complist[comp.name.token.value] = comp
+        return self.complist
 
     def error(self):
         raise Exception('Syntax Error')
@@ -114,8 +118,8 @@ class Parser(object):
             self.eat(RPAREN)
             return node
         if token.type == ID:
-            return self.identifier()
-
+            identifier = self.identifier()
+            return identifier
 
     # Parsing of composite tokens
     def identifier(self):
@@ -144,14 +148,12 @@ class Parser(object):
             width = self.current_token.value
             self.eat(DECINTCONST)
             self.eat(RBRACKET)
-            return int(width)
-        return 1
+            return width
+        return '1'
 
     # Parsing of declarations
     def gendeclare(self):
         gentype = self.current_token
-        print gentype
-        print self.current_token
         self.eat(TYPE)
         token = self.current_token
         self.eat(ID)
@@ -179,7 +181,7 @@ class Parser(object):
         self.eat(EOL)
         return Variable(Identifier(token), vartype, width)
 
-    # Parse entire source
+    # Parse entire component
     def component(self):
         self.eat('COMPONENT')
         name = self.identifier()
@@ -249,7 +251,10 @@ class Parser(object):
                         self.eat(ID)
                         self.eat(LPAREN)
                         #parse generic assignment list
-                        generics = self.genericlist()
+                        if self.current_token.type != RPAREN:
+                            generics = self.genericlist()
+                        else:
+                            generics = None
                         self.eat(RPAREN)
                         body.children.append(CompInst(Identifier(name), node, generics))
                         self.eat(EOL)
@@ -282,15 +287,13 @@ class Parser(object):
 def test():
     lex = Lexer(
     '''
-    component CompName
+    component AndGate
     {
-        int genericint;
-        bool genericbool;
-        vec genericvec;
-
+        int width;
+        int ports;
         port
         {
-            input int inputint;
+            input vec inputint;
             input vec inputvec;
             output bool outputbool;
         }
