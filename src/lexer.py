@@ -2,7 +2,6 @@
 # tokenizer/lexer for CDL
 
 from enums import *
-from token import *
 
 class Lexer(object):
     def __init__(self, text):
@@ -74,8 +73,8 @@ class Lexer(object):
         while self.current_char is not None and (self.current_char.isalnum() or self.current_char == '_'):
             result += self.current_char
             self.advance()
-        token = RESERVED_KEYWORDS.get(result, Token(ID, result)) #dict.get(key[, default]) returns default if key isn't found
-        return token
+        identifier = RESERVED_KEYWORDS.get(result, token.Token(ID, result)) #dict.get(key[, default]) returns default if key isn't found
+        return identifier
 
     def comment(self):
         while self.current_char is not None and self.current_char != '\n':
@@ -108,24 +107,24 @@ class Lexer(object):
             
             if self.current_char == ';':
                 self.advance()
-                return Token(EOL, ';')
+                return token.Token(EOL, ';')
 
             if self.current_char == ',':
                 self.advance()
-                return Token(COMMA, ',')
+                return token.Token(COMMA, ',')
             if self.current_char == '.':
                 self.advance()
-                return Token(PERIOD, '.')
+                return token.Token(PERIOD, '.')
 
             # Tokenize hex constants
             if self.current_char == 'x' and self.peek() == '"':
                 self.advance()
                 self.advance()
-                return Token(HEXVECCONST, self.hexVector())
+                return token.Token(HEXVECCONST, self.hexVector())
 
             if self.current_char == '"':
                 self.advance()
-                return Token(BINVECCONST, self.binVector())
+                return token.Token(BINVECCONST, self.binVector())
 
             if self.current_char.isalpha():
                 return self.id()
@@ -134,123 +133,123 @@ class Lexer(object):
                 if self.current_char == '0' and self.peek() == 'x':
                     self.advance()
                     self.advance()
-                    return Token(HEXINTCONST, self.hexInteger())
+                    return token.Token(HEXINTCONST, self.hexInteger())
                 if self.current_char == '0' and self.peek() == 'b':
                     self.advance()
                     self.advance()
-                    return Token(BININTCONST, self.binInteger())
-                return Token(DECINTCONST, self.decInteger())
+                    return token.Token(BININTCONST, self.binInteger())
+                return token.Token(DECINTCONST, self.decInteger())
 
             # Tokenizing '<=' based on context (either relational operator - boolean context, or signal assignment - all other contexts)
             if self.current_char == '<' and self.peek() == '=':
                 self.advance()
                 self.advance()
                 if self.current_scopetype == BOOLSCOPE:
-                    return Token(LE, '<=')
+                    return token.Token(LE, '<=')
                 if self.current_scopetype == OTHERSCOPE:
-                    return Token(SIGASSIGN, '<=')
+                    return token.Token(SIGASSIGN, '<=')
 
             # Tokenize other assignment operators
             if self.current_char == ':' and self.peek() == '=':
                 self.advance()
                 self.advance()
-                return Token(VARASSIGN, ':=')
+                return token.Token(VARASSIGN, ':=')
             if self.current_char == '=':
                 self.advance()
-                return Token(ASSIGN, '=')
+                return token.Token(ASSIGN, '=')
 
             if self.current_char == '?':
                 self.advance()
-                return Token(TERNQ, '?')
+                return token.Token(TERNQ, '?')
             if self.current_char == ':':
                 self.advance()
                 if self.current_scopetype == IDSCOPE:
-                    return Token(DOWNTO, ':')
+                    return token.Token(DOWNTO, ':')
                 if self.current_scopetype == OTHERSCOPE:
-                    return Token(TERNSEP, ':')
+                    return token.Token(TERNSEP, ':')
 
             # Tokenize relational operators
             if self.current_char == '>' and self.peek() == '=':
                 self.advance()
                 self.advance()
-                return Token(GE, '>=')
+                return token.Token(GE, '>=')
             if self.current_char == '<':
                 self.advance()
-                return Token(LT, '<')
+                return token.Token(LT, '<')
             if self.current_char == '>':
                 self.advance()
-                return Token(GT, '>')
+                return token.Token(GT, '>')
             if self.current_char == '=' and self.peek() == '=':
                 self.advance()
                 self.advance()
-                return Token(EQ, '==')
+                return token.Token(EQ, '==')
             if self.current_char == '!' and self.peek() == '=':
                 self.advance()
                 self.advance()
-                return Token(NE, '!=')
+                return token.Token(NE, '!=')
 
             # Tokenize arithmetic operators
             if self.current_char == '+':
                 self.advance()
-                return Token(ADD, '+')
+                return token.Token(ADD, '+')
             if self.current_char == '-':
                 self.advance()
-                return Token(SUB, '-')
+                return token.Token(SUB, '-')
             if self.current_char == '*' and self.peek() == '*':
                 self.advance()
                 self.advance()
-                return Token(EXP, '**')
+                return token.Token(EXP, '**')
             if self.current_char == '*':
                 self.advance()
-                return Token(MUL, '*')
+                return token.Token(MUL, '*')
             if self.current_char == '/':
                 self.advance()
-                return Token(DIV, '/')
+                return token.Token(DIV, '/')
             if self.current_char == '%':
                 self.advance()
-                return Token(MOD, '%')     
+                return token.Token(MOD, '%')     
 
             # Tokenize boolean operators
             if self.current_char == '&':
                 self.advance()
-                return Token(AND, '&')
+                return token.Token(AND, '&')
             if self.current_char == '|':
                 self.advance()
-                return Token(OR, '|')
+                return token.Token(OR, '|')
             if self.current_char == '^':
                 self.advance()
-                return Token(XOR, '^')
+                return token.Token(XOR, '^')
             if self.current_char == '!':
                 self.advance()
-                return Token(NOT, '!')
+                return token.Token(NOT, '!')
 
             # Tokenize braces/parentheses/brackets
             if self.current_char == '(':
                 self.advance()
-                return Token(LPAREN, '(')
+                return token.Token(LPAREN, '(')
             if self.current_char == ')':
                 self.advance()
-                return Token(RPAREN, ')')
+                return token.Token(RPAREN, ')')
             if self.current_char == '{':
                 self.advance()
-                return Token(LBRACE, '{')
+                return token.Token(LBRACE, '{')
             if self.current_char == '}':
                 self.advance()
-                return Token(RBRACE, '}')
+                return token.Token(RBRACE, '}')
             if self.current_char == '[':
                 self.advance()
-                return Token(LBRACKET, '[')
+                return token.Token(LBRACKET, '[')
             if self.current_char == ']':
                 self.advance()
-                return Token(RBRACKET, ']')
+                return token.Token(RBRACKET, ']')
 
             if self.current_char == '&':
                 self.advance()
-                return Token(CONCAT, '&')
+                return token.Token(CONCAT, '&')
 
             self.error()
 
-        return Token(EOF, None)
+        return token.Token(EOF, None)
 
 def test():
     lex = Lexer('hi <= x"12ffab"; lol := ( 0b1011); {banana <= true}; five or x"10f" := hi;')

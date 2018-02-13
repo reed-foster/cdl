@@ -1,10 +1,10 @@
 # treevisitor.py - Reed Foster
 # Utility for visiting tree nodes
 
-from parser import *
+import parser
+import lexer
+import ast
 from enums import *
-from lexer import *
-from ast import *
 
 class Visitor(object):
 
@@ -138,9 +138,9 @@ class Visitor(object):
                     identifier = self.visit(item.left, depth + 1)
                     comp, port = identifier.split('.')
                     signalname = '_'.join((comp, port))
-                    self.tempsigs[signalname] = Signal(Identifier(Token(ID, signalname)), Token(TYPE, 'placeholder'))
+                    self.tempsigs[signalname] = ast.Signal(ast.Identifier(token.Token(ID, signalname)), token.Token(TYPE, 'placeholder'))
                     self.portmaps[comp][port] = signalname
-                    node.children[node.children.index(item)].left = Identifier(Token(ID, signalname)) # replace port with temp signal
+                    node.children[node.children.index(item)].left = ast.Identifier(token.Token(ID, signalname)) # replace port with temp signal
                 else:
                     right = self.visit(item.right, depth + 1)
                     if '.' in right:
@@ -150,9 +150,9 @@ class Visitor(object):
                             if '.' in term:
                                 comp, port = term.split('.')
                                 signalname = '_'.join((comp, port))
-                                self.tempsigs[signalname] = Signal(Identifier(Token(ID, signalname)), Token(TYPE, 'placeholder'))
+                                self.tempsigs[signalname] = ast.Signal(ast.Identifier(token.Token(ID, signalname)), token.Token(TYPE, 'placeholder'))
                                 self.portmaps[comp][port] = signalname
-                        node.children[node.children.index(item)].right = Identifier(Token(ID, right.replace('.', '_')))
+                        node.children[node.children.index(item)].right = ast.Identifier(token.Token(ID, right.replace('.', '_')))
 
         # add signal declarations for temp signals
         for signal in self.tempsigs:
@@ -238,8 +238,8 @@ def test():
 
     vis = Visitor()
 
-    lex = Lexer(src)
-    parse = Parser(lex)
+    lex = lexer.Lexer(src)
+    parse = parser.Parser(lex)
 
     complist = parse.parse()
 

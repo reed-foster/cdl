@@ -1,16 +1,16 @@
 # parser.py - Reed Foster
 # parser for token streams; generates an AST
 
+import lexer
+import ast
 from enums import *
-from lexer import *
-from ast import *
 
 class Parser(object):
 
     def __init__(self, lexer):
         self.lexer = lexer
         self.current_token = self.lexer.getNextToken()
-        self.complist = {} # This doesn't work, probably should do multisource from above treevisitor level
+        self.complist = {}
 
     # wrapper for component method
     def parse(self):
@@ -36,7 +36,7 @@ class Parser(object):
             self.eat(TERNQ)
             left = self.expression()
             self.eat(TERNSEP)
-            node = TernaryOp(node, left, self.expression())
+            node = ast.TernaryOp(node, left, self.expression())
         return node
 
     def boolexpr(self):
@@ -44,14 +44,14 @@ class Parser(object):
         while self.current_token.type in (AND, OR, XOR):
             token = self.current_token
             self.eat(token.type)
-            node = BinaryOp(node, token, self.boolfactor())
+            node = ast.BinaryOp(node, token, self.boolfactor())
         return node
 
     def boolfactor(self):
         token = self.current_token
         if token.type == NOT:
             self.eat(NOT)
-            node = UnaryOp(token, self.relation())
+            node = ast.UnaryOp(token, self.relation())
             return node
         return self.relation()
 
@@ -59,14 +59,14 @@ class Parser(object):
         token = self.current_token
         if token.type == BOOLCONST:
             self.eat(BOOLCONST)
-            return Identifier(token)
+            return ast.Identifier(token)
         else:
             self.lexer.current_scopetype = BOOLSCOPE
             node = self.sum()
             if self.current_token.type in (LT, GT, LE, GE, EQ, NE):
                 token = self.current_token
                 self.eat(token.type)
-                node = BinaryOp(node, token, self.sum())
+                node = ast.BinaryOp(node, token, self.sum())
             self.lexer.current_scopetype = OTHERSCOPE
             return node
 
@@ -76,7 +76,7 @@ class Parser(object):
         while self.current_token.type in (ADD, SUB) or (self.current_token.type == BITWISEOP and self.current_token.value in ('or', 'nor')):
             token = self.current_token
             self.eat(token.type)
-            node = BinaryOp(node, token, self.product())
+            node = ast.BinaryOp(node, token, self.product())
         return node
 
     # Parse arithmetic multiplication operations and boolean multiplication operations
@@ -85,18 +85,18 @@ class Parser(object):
         while self.current_token.type in (MUL, DIV, MOD) or (self.current_token.type == BITWISEOP and self.current_token.value in ('and', 'nand', 'xor', 'xnor')):
             token = self.current_token
             self.eat(token.type)
-            node = BinaryOp(node, token, self.factor())
+            node = ast.BinaryOp(node, token, self.factor())
         return node
 
     def factor(self):
         token = self.current_token
         if token.type == SUB:
             self.eat(SUB)
-            node = UnaryOp(token, self.power())
+            node = ast.UnaryOp(token, self.power())
             return node
         if token.type == BITWISEOP and token.value == 'not':
             self.eat(BITWISEOP)
-            node = UnaryOp(token, self.power())
+            node = ast.UnaryOp(token, self.power())
             return node
         return self.power()
 
@@ -105,7 +105,7 @@ class Parser(object):
         while self.current_token.type == EXP:
             token = self.current_token
             self.eat(EXP)
-            node = BinaryOp(node, token, self.term())
+            node = ast.BinaryOp(node, token, self.term())
         return node
 
     def term(self):
@@ -114,7 +114,7 @@ class Parser(object):
             return self.constant()
         if token.type == LPAREN:
             self.eat(LPAREN)
-            node = UnaryOp(Token('PAREN', '()'), self.expression())
+            node = ast.UnaryOp(token.Token('PAREN', '()'), self.expression())
             self.eat(RPAREN)
             return node
         if token.type == ID:
@@ -130,8 +130,8 @@ class Parser(object):
             self.eat(PERIOD)
             right = self.current_token
             self.eat(ID)
-            return BinaryOp(Identifier(left), token, Identifier(right))
-        return Identifier(left)
+            return ast.BinaryOp(ast.Identifier(left), token, ast.Identifier(right))
+        return ast.Identifier(left)
 
     def constant(self):
         token = self.current_token
@@ -139,7 +139,7 @@ class Parser(object):
             self.eat(token.type)
         else:
             self.eat(ID)
-        return Constant(token)
+        return ast.Constant(token)
 
     # Returns the width of the vector (in bits)
     def getvecwidth(self):
@@ -159,7 +159,7 @@ class Parser(object):
         self.eat(ID)
         width = self.getvecwidth() if gentype.value == 'vec' else None
         self.eat(EOL)
-        return Generic(Identifier(token), gentype, width)
+        return ast.Generic(ast.Identifier(token), gentype, width)
 
     def sigdeclare(self):
         self.eat(SIGNAL)
@@ -169,7 +169,7 @@ class Parser(object):
         self.eat(ID)
         width = self.getvecwidth() if sigtype.value == 'vec' else None
         self.eat(EOL)
-        return Signal(Identifier(token), sigtype, width)
+        return ast.Signal(ast.Identifier(token), sigtype, width)
 
     def vardeclare(self):
         self.eat(VARIABLE)
@@ -179,14 +179,14 @@ class Parser(object):
         self.eat(ID)
         width = self.getvecwidth() if vartype.value == 'vec' else None
         self.eat(EOL)
-        return Variable(Identifier(token), vartype, width)
+        return ast.Variable(ast.Identifier(token), vartype, width)
 
     # Parse entire component
     def component(self):
         self.eat('COMPONENT')
         name = self.identifier()
         self.eat(LBRACE)
-        body = ComponentBody()
+        body = ast.ComponentBody()
         while self.current_token.type != RBRACE:
             if self.current_token.type == TYPE:
                 body.children.append(self.gendeclare())
@@ -196,14 +196,14 @@ class Parser(object):
             elif self.current_token.type == ID or self.current_token.type == 'ARCH':
                 body.children.append(self.arch())
         self.eat(RBRACE)
-        node = Component(name, body)
+        node = ast.Component(name, body)
         return node
 
     # Parse port declaration
     def port(self):
         self.eat('PORT')
         self.eat(LBRACE)
-        body = PortList()
+        body = ast.PortList()
         while self.current_token.type != RBRACE:
             direction = self.current_token
             self.eat(PORTDIR)
@@ -213,19 +213,19 @@ class Parser(object):
             self.eat(ID)
             width = self.getvecwidth() if porttype.value == 'vec' else None
             self.eat(EOL)
-            body.children.append(Port(Identifier(name), porttype, direction, width))
+            body.children.append(ast.Port(ast.Identifier(name), porttype, direction, width))
         self.eat(RBRACE)
         return body
 
     # Parse architecture
     def arch(self):
-        archname = Token(ID, 'implementation')
+        archname = token.Token(ID, 'implementation')
         if self.current_token.type == ID:
             archname = self.current_token
             self.eat(ID)
         self.eat('ARCH')
         self.eat(LBRACE)
-        body = ArchBody()
+        body = ast.ArchBody()
         while self.current_token.type != RBRACE:
             if self.current_token.type == SIGNAL:
                 body.children.append(self.sigdeclare())
@@ -240,7 +240,7 @@ class Parser(object):
                 node = self.identifier()
                 if self.current_token.type == SIGASSIGN:
                     self.eat(SIGASSIGN)
-                    body.children.append(BinaryOp(node, Token(SIGASSIGN, '<='), self.expression()))
+                    body.children.append(ast.BinaryOp(node, token.Token(SIGASSIGN, '<='), self.expression()))
                     self.eat(EOL)
                 elif self.current_token.type == ID:
                     name = self.current_token
@@ -256,12 +256,12 @@ class Parser(object):
                         else:
                             generics = None
                         self.eat(RPAREN)
-                        body.children.append(CompInst(Identifier(name), node, generics))
+                        body.children.append(ast.CompInst(ast.Identifier(name), node, generics))
                         self.eat(EOL)
                     else:
                         self.error()
         self.eat(RBRACE)
-        node = Arch(Identifier(archname), body)
+        node = ast.Arch(ast.Identifier(archname), body)
         return node
 
 
@@ -271,21 +271,21 @@ class Parser(object):
         if self.current_token.type == COMMA:
             token = self.current_token
             self.eat(COMMA)
-            return BinaryOp(assignment, token, self.genericlist())
+            return ast.BinaryOp(assignment, token, self.genericlist())
         return assignment
 
     def genericassign(self):
         item = self.current_token
         self.eat(ID)
         self.eat(ASSIGN)
-        constant = Constant(self.current_token)
+        constant = ast.Constant(self.current_token)
         self.eat(self.current_token.type)
-        assignment = BinaryOp(Identifier(item), Token(ASSIGN, '='), constant)
+        assignment = ast.BinaryOp(ast.Identifier(item), token.Token(ASSIGN, '='), constant)
         return assignment
 
 
 def test():
-    lex = Lexer(
+    lex = lexer.Lexer(
     '''
     component AndGate
     {

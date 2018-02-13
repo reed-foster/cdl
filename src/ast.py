@@ -1,9 +1,6 @@
 # ast.py - Reed Foster
 # Classes for all AST nodes
 
-from enums import *
-from token import *
-
 class AST(object):
     pass
 

@@ -1,7 +1,7 @@
 # enums.py - Reed Foster
 # String enumerations for various keywords
 
-from token import *
+import token
 
 ID, SIGASSIGN, VARASSIGN, ASSIGN = ('ID', 'SIGASSIGN', 'VARASSIGN', 'ASSIGN')
 TYPE, BITWISEOP, ARCHTYPE, PORTDIR = ('TYPE', 'BITWISEOP', 'ARCHTYPE', 'PORTDIR')
@@ -19,33 +19,33 @@ COMMA, PERIOD = ('COMMA', 'PERIOD')
 BOOLSCOPE, IDSCOPE, OTHERSCOPE = ('BOOLSCOPE', 'IDSCOPE', 'OTHERSCOPE')
 
 RESERVED_KEYWORDS = {
-    'component' : Token('COMPONENT', 'component'),
-    'port' : Token('PORT','port'),
-    'arch' : Token('ARCH','arch'),
-    'generate' : Token('GENERATE','generate'),
-    'process' : Token('PROCESS', 'process'),
-    'signal' : Token(SIGNAL,'signal'),
-    'variable' : Token(VARIABLE,'variable'),
-    'new' : Token('NEW','new'),
-    'if' : Token('IF','if'),
-    'else' : Token('ELSE', 'else'),
-    'for' : Token('FOR','for'),
-    'while' : Token('WHILE','while'),
-    'input' : Token(PORTDIR, 'input'),
-    'output' : Token(PORTDIR, 'output'),
-    'int' : Token(TYPE,'int'),
-    'uint' : Token(TYPE, 'uint'),
-    'vec' : Token(TYPE,'vec'),
-    'bool' : Token(TYPE,'bool'),
-    'true' : Token(BOOLCONST, 'true'),
-    'false' : Token(BOOLCONST, 'false'),
-    'and' : Token(BITWISEOP, 'and'),
-    'or' : Token(BITWISEOP, 'or'),
-    'not' : Token(BITWISEOP, 'not'),
-    'nand' : Token(BITWISEOP, 'nand'),
-    'nor' : Token(BITWISEOP, 'nor'),
-    'xor' : Token(BITWISEOP, 'xor'),
-    'xnor' : Token(BITWISEOP, 'xnor'),
-    'implementation' : Token(ARCHTYPE, 'implementation'),
-    'verification' : Token(ARCHTYPE, 'verification')
+    'component' : token.Token('COMPONENT', 'component'),
+    'port' : token.Token('PORT','port'),
+    'arch' : token.Token('ARCH','arch'),
+    'generate' : token.Token('GENERATE','generate'),
+    'process' : token.Token('PROCESS', 'process'),
+    'signal' : token.Token(SIGNAL,'signal'),
+    'variable' : token.Token(VARIABLE,'variable'),
+    'new' : token.Token('NEW','new'),
+    'if' : token.Token('IF','if'),
+    'else' : token.Token('ELSE', 'else'),
+    'for' : token.Token('FOR','for'),
+    'while' : token.Token('WHILE','while'),
+    'input' : token.Token(PORTDIR, 'input'),
+    'output' : token.Token(PORTDIR, 'output'),
+    'int' : token.Token(TYPE,'int'),
+    'uint' : token.Token(TYPE, 'uint'),
+    'vec' : token.Token(TYPE,'vec'),
+    'bool' : token.Token(TYPE,'bool'),
+    'true' : token.Token(BOOLCONST, 'true'),
+    'false' : token.Token(BOOLCONST, 'false'),
+    'and' : token.Token(BITWISEOP, 'and'),
+    'or' : token.Token(BITWISEOP, 'or'),
+    'not' : token.Token(BITWISEOP, 'not'),
+    'nand' : token.Token(BITWISEOP, 'nand'),
+    'nor' : token.Token(BITWISEOP, 'nor'),
+    'xor' : token.Token(BITWISEOP, 'xor'),
+    'xnor' : token.Token(BITWISEOP, 'xnor'),
+    'implementation' : token.Token(ARCHTYPE, 'implementation'),
+    'verification' : token.Token(ARCHTYPE, 'verification')
 }
