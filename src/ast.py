@@ -21,6 +21,12 @@ class UnaryOp(AST):
         self.token = self.op = op
         self.right = right
 
+class Splice(AST):
+    def __init__(self, identifier, top, bottom):
+        self.identifier = identifier
+        self.top = top
+        self.bottom = bottom
+
 class CompInst(AST):
     def __init__(self, name, comptype, generics):
         self.name = name

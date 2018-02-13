@@ -11,7 +11,6 @@ class Visitor(object):
     def __init__(self):
         self.compname = ''
         self.subcomps = {}
-        self.signals = {}
         self.tempsigs = {}
         self.portmaps = {}
 
@@ -45,6 +44,12 @@ class Visitor(object):
             output = node.op.value + ' ' + self.visit(node.right, depth + 1)
         return output
 
+    def visitSplice(self, node, depth):
+        topidx = self.visit(node.top, depth + 1)
+        bottomidx = self.visit(node.bottom, depth + 1)
+        splicestr = topidx + (' downto ' + bottomidx if topidx != bottomidx else '')
+        return self.visit(node.identifier, depth + 1) + '(' + splicestr + ')'
+
     def visitCompInst(self, node, depth):
         name = self.visit(node.name, depth + 1)
         comptype = self.visit(node.comptype, depth + 1)
@@ -67,7 +72,6 @@ class Visitor(object):
     def visitSignal(self, node, depth):
         name = self.visit(node.name, depth + 1)
         sigtype = node.sigtype.value
-        self.signals[name] = sigtype
         width = '' if node.width is None else '(' + self.genvecwidth(node.width) + ' downto 0)'
         return 'signal ' + name + ' : ' + sigtype + width
 
@@ -179,7 +183,7 @@ class Visitor(object):
 
 def test():
 
-    src = '''
+    multisrc = '''
     component XorGate
     {
         port
@@ -233,6 +237,22 @@ def test():
         }
     }
     '''
+
+    splicesrc = '''
+    component SpliceTest
+    {
+        port
+        {
+        }
+        arch
+        {
+            signal vec testsig;
+            testsig[3:2] <= testsig[2] & testsig[3];
+        }
+    }
+    '''
+
+    src = splicesrc
 
     #components = ['component' + component for component in src.split('component')]
 

@@ -11,6 +11,7 @@ class Parser(object):
         self.lexer = lexer
         self.current_token = self.lexer.getNextToken()
         self.complist = {}
+        self.veclist = {} # list of all identifiers (signals, variables, or generics) that are type vector
 
     # wrapper for component method
     def parse(self):
@@ -32,10 +33,10 @@ class Parser(object):
     # Expression parsing and utilities
     def expression(self):
         node = self.boolexpr()
-        while self.current_token.type == TERNQ:
-            self.eat(TERNQ)
+        while self.current_token.type == QUESTION:
+            self.eat(QUESTION)
             left = self.expression()
-            self.eat(TERNSEP)
+            self.eat(COLON)
             node = ast.TernaryOp(node, left, self.expression())
         return node
 
@@ -73,7 +74,7 @@ class Parser(object):
     # Parse arithmetic summation operations and boolean summation operations
     def sum(self):
         node = self.product()
-        while self.current_token.type in (ADD, SUB) or (self.current_token.type == BITWISEOP and self.current_token.value in ('or', 'nor')):
+        while self.current_token.type in (ADD, SUB) or (self.current_token.type == BITWISEOP and self.current_token.value in ('or', 'nor')) or self.current_token.type == CONCAT:
             token = self.current_token
             self.eat(token.type)
             node = ast.BinaryOp(node, token, self.product())
@@ -121,16 +122,36 @@ class Parser(object):
             identifier = self.identifier()
             return identifier
 
+    # helper method for identifier parsing; if a splice of a vector is detected, then use getsplice to parse it
+    def getsplice(self, identifier):
+        if identifier.value not in self.veclist: # works for now, but if identifier is a compound id (i.e. a subcomponent port), then this fails
+            raise Exception('Type Error: ' + identifier.value + ' is not of type VEC')
+        self.eat(LBRACKET)
+        top = self.expression()
+        if self.current_token.type == RBRACKET:
+            bottom = top
+        else:
+            self.eat(COLON)
+            bottom = self.expression()
+        self.eat(RBRACKET)
+        return ast.Splice(ast.Identifier(identifier), top, bottom)
+
+
     # Parsing of composite tokens
     def identifier(self):
         left = self.current_token
         self.eat(ID)
         token = self.current_token
+        if token.type == LBRACKET:
+            return self.getsplice(left)
         if token.type == PERIOD:
             self.eat(PERIOD)
             right = self.current_token
             self.eat(ID)
-            return ast.BinaryOp(ast.Identifier(left), token, ast.Identifier(right))
+            node = ast.BinaryOp(ast.Identifier(left), token, ast.Identifier(right))
+            if token.type == LBRACKET:
+                return self.getsplice(node)
+            return node
         return ast.Identifier(left)
 
     def constant(self):
@@ -157,7 +178,10 @@ class Parser(object):
         self.eat(TYPE)
         token = self.current_token
         self.eat(ID)
-        width = self.getvecwidth() if gentype.value == 'vec' else None
+        width = None
+        if gentype.value == 'vec':
+            self.veclist[token.value] = ''
+            width = self.getvecwidth()
         self.eat(EOL)
         return ast.Generic(ast.Identifier(token), gentype, width)
 
@@ -167,7 +191,10 @@ class Parser(object):
         self.eat(TYPE)
         token = self.current_token
         self.eat(ID)
-        width = self.getvecwidth() if sigtype.value == 'vec' else None
+        width = None
+        if sigtype.value == 'vec':
+            self.veclist[token.value] = ''
+            width = self.getvecwidth()
         self.eat(EOL)
         return ast.Signal(ast.Identifier(token), sigtype, width)
 
@@ -177,7 +204,10 @@ class Parser(object):
         self.eat(TYPE)
         token = self.current_token
         self.eat(ID)
-        width = self.getvecwidth() if vartype.value == 'vec' else None
+        width = None
+        if vartype.value == 'vec':
+            self.veclist[token.value] = ''
+            width = self.getvecwidth()
         self.eat(EOL)
         return ast.Variable(ast.Identifier(token), vartype, width)
 
