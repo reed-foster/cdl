@@ -160,13 +160,10 @@ class Lexer(object):
 
             if self.current_char == '?':
                 self.advance()
-                return token.Token(TERNQ, '?')
+                return token.Token(QUESTION, '?')
             if self.current_char == ':':
                 self.advance()
-                if self.current_scopetype == IDSCOPE:
-                    return token.Token(DOWNTO, ':')
-                if self.current_scopetype == OTHERSCOPE:
-                    return token.Token(TERNSEP, ':')
+                return token.Token(COLON, ':')
 
             # Tokenize relational operators
             if self.current_char == '>' and self.peek() == '=':
