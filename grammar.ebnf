@@ -19,18 +19,19 @@ component = component_declaration, LBRACE, component_body, RBRACE;
                         generic_assign = [identifier ASSIGN], constant;
                 process = "process", LPAREN, sensitivity_list, RPAREN, LBRACE, process_body, RBRACE;
                     sensitivity_list = identifier, {(COMMA, identifier)};
-                    process_body = {(variable_declaration | variable_assignment | signal_assignment | conditional_block | for_loop | while_loop)};
+                    process_body = {(variable_declaration | variable_assignment | signal_assignment | conditional_block | for_loop | while_loop | switch_case)};
                         variable_declaration = "variable", type, identifier, EOL;
                         variable_assigment = identifier, VARASSIGN, expression, EOL;
                         conditional_block = "if", LPAREN, boolexpr, RPAREN, LBRACE, [process_body], RBRACE, [("else", (conditional_block | LBRACE, [process_body], RBRACE)];
                         for_loop = "for", LPAREN, variable_declaration, EOL, boolexpr, EOL, expression, RPAREN, LBRACE, [process_body], RBRACE;
                         while_loop = "while", LPAREN, boolexpr, RPAREN, LBRACE, [process_body], RBRACE;
+                        switch_case = "switch", LPAREN, identifier, RPAREN, LBRACE, {((("case", identifier, COLON) | ("default", COLON)), [process_body], ["break", EOL])}, RBRACE;
                 generate = generate_if | generate_for;
                     generate_if = "generate", "if", LPAREN, boolexpr, RPAREN, LBRACE, [generate_body], RBRACE;
                     generate_for = "generate", "for", LPAREN, variable_declaration, EOL, boolexpr, EOL, expression, RPAREN, LBRACE, [generate_body], RBRACE;
                         generate_body = {signal_assignment};
 
-identifier = ID, [(PERIOD, ID)];
+identifier = ID, [(PERIOD, ID)], [(LBRACKET, (expression | (expression, COLON, expression)), RBRACKET)];
 constant = BOOLCONST | BININTCONST | HEXINTCONST | DECINTCONST | BINVECCONST | HEXVECCONST | ID;
 portdir = "input" | "output";
 type = "int" | "vec" | "bool";
@@ -42,7 +43,7 @@ mulop = MUL | DIV | MOD;
 bitwisemul = "and" | "nand" | "xor" | "xnor";
 
 (* Expression definition *)
-expression = (boolexpr, TERNQ, expression, TERNSEP, expression) | sum;
+expression = (boolexpr, QUESTION, expression, COLON, expression) | sum;
 boolexpr = boolfactor, [boolop, boolexpr];
 boolfactor = [NOT], (relation | BOOLCONST | identifier);
 relation = sum, relop, sum;
