@@ -1,7 +1,25 @@
+/*
+Lexer.java - Reed Foster
+Tokenizes source code
+*/
+
 package com.foster.cdl;
+
+import java.util.*;
 
 public class Lexer extends LexicalAnalyzer
 {
+    // Initialize Reserved Keyword Sets
+    public static final Set<String> PORTDIR = arrayToSet(new String[] {"input", "output"});
+    public static final Set<String> TYPE = arrayToSet(new String[] {"int", "uint", "vec", "bool"});
+    public static final Set<String> BITWISEOP = arrayToSet(new String[] {"and", "or", "not", "nand", "nor", "xor", "xnor"});
+    public static final Set<String> RESERVEDIDS = arrayToSet(new String[] {"component", "port", "arch", "signal", "variable", "new"}).addAll(TYPE).addAll(BITWISEOP).addAll(PORTDIR);
+
+    private static Set<String> arrayToSet(String[] array)
+    {
+        return new HashSet<String>(Arrays.asList(array));
+    }
+
     private String source;
 
     private int pos;
@@ -16,6 +34,20 @@ public class Lexer extends LexicalAnalyzer
         this.currentchar = this.source.charAt(this.pos);
     }
 
+    /**
+    * Public get method for current line (used internally for error messages in Parser)
+    * @return this.line;
+    */
+    public int getline()
+    {
+        return this.line;
+    }
+
+    /**
+    * Retrieves the next character from source and advances the character pointer
+    * @param count specifies the amount by which to increment the character pointer
+    * @return character at this.pos after incrementing or 0 if past the end of source
+    */
     private void advance(int count)
     {
         this.pos += count;
@@ -26,15 +58,21 @@ public class Lexer extends LexicalAnalyzer
             return;
         }
         this.currentchar = this.source.charAt(this.pos);
-        return;
     }
 
+    /**
+    * Overloaded advance method
+    * @return this.advance(1)
+    */
     private void advance()
     {
         this.advance(1);
-        return;
     }
 
+    /**
+    * Retrieves the next character without advancing the character pointer
+    * @return character at (this.pos + 1) or 0 if past the end of source
+    */
     private char peek()
     {
         int peekpos = this.pos + 1;
@@ -47,12 +85,21 @@ public class Lexer extends LexicalAnalyzer
     {
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
     }
+
+    private static boolean isNum(char c)
+    {
+        return (c >= '0' && c <= '9');
+    }
     
     private static boolean isSpace(char c)
     {
-    	return (c == ' ' || c == '\t' || c == '\n');
+        return (c == ' ' || c == '\t' || c == '\n');
     }
 
+    /**
+    * Parses vector literals
+    * @return Token for (bin|hex)vec constant
+    */
     private Token getVec(Tokentype type)
     {
         if (type == Tokentype.HEXVECCONST)
@@ -60,7 +107,7 @@ public class Lexer extends LexicalAnalyzer
         else if (type == Tokentype.BINVECCONST)
             this.advance();
         else
-            error("Invalid Vector Type", this.col, this.line);
+            error("Internal Error: Invalid Vector Type", this.col, this.line);
 
         int stringend = this.source.indexOf("\"", this.pos);
         String value = this.source.substring(this.pos, stringend);
@@ -69,12 +116,16 @@ public class Lexer extends LexicalAnalyzer
 
     }
 
+    /**
+    * Parses integer literals
+    * @return Token for (bin|hex|dec)int constant
+    */
     private Token getInt(Tokentype type)
     {
         if (type == Tokentype.HEXINTCONST || type == Tokentype.BININTCONST)
             this.advance(2);
         else if (type != Tokentype.DECINTCONST)
-            error("Invalid Integer Type", this.col, this.line);
+            error("Internal Error: Invalid Integer Type", this.col, this.line);
 
         int stringend = this.pos;
         char upperbound = type == Tokentype.BININTCONST ? '1' : '9';
@@ -86,18 +137,28 @@ public class Lexer extends LexicalAnalyzer
         return new Token(type, value);
     }
     
+    /**
+    * Parses alphanumeric strings
+    * @return Token for alphanumeric string
+    */
     private Token getId()
     {
-    	int stringend = this.pos;
-    	while (isAlpha(this.source.charAt(stringend)))
-    		stringend++;
-    	String value = this.source.substring(this.pos, stringend);
-    	this.advance(stringend - this.pos + 1);
-    	if (value.compareTo("true") == 0 || value.compareTo("false") == 0)
-    		return new Token(Tokentype.BOOLCONST, value);
-    	return new Token(Tokentype.ID, value);
+        int stringend = this.pos;
+        while (isAlpha(this.source.charAt(stringend)) || isNum(this.source.charAt(stringend)))
+            stringend++;
+        String value = this.source.substring(this.pos, stringend);
+        this.advance(stringend - this.pos + 1);
+        if (value.compareTo("true") == 0 || value.compareTo("false") == 0)
+            return new Token(Tokentype.BOOLCONST, value);
+        if (Lexer.RESERVEDIDS.contains(value))
+            return new Token(Tokentype.RESERVED, value);
+        return new Token(Tokentype.ID, value);
     }
 
+    /**
+    * Rerieves the next token from source
+    * @return next Token
+    */
     public Token getNextToken()
     {
         while (this.currentchar != 0)
@@ -227,8 +288,8 @@ public class Lexer extends LexicalAnalyzer
                     return new Token(Tokentype.AND, "&");
                     
                 case '|':
-                	this.advance();
-                	return new Token(Tokentype.OR, "|");
+                    this.advance();
+                    return new Token(Tokentype.OR, "|");
 
                 case '?':
                     this.advance();
@@ -300,10 +361,16 @@ public class Lexer extends LexicalAnalyzer
         return new Token(Tokentype.EOF, "");
     }
 
+    /**
+    * Unit test
+    */
     public static void main(String args[])
     {
-    	// tests every valid token
-        Lexer lexer = new Lexer("hi 10 0b101 0xabcd \"101101\" x\"abc103\" //comment lol \n true false /*multiline comments are cool*/ := = == < > <= >= != + - * / % ** & | ^ ! & : ? ( ) { } [ ] ; , .");
+        // tests every valid token
+        String source = "hi 10 0b101 0xabcd \"101101\" x\"abc103\" //comment lol \n" + 
+                        "true false /*multiline comments are cool*/ := = == < > <= " +
+                        ">= != + - * / % ** & | ^ ! & : ? ( ) { } [ ] ; , .";
+        Lexer lexer = new Lexer(source);
         while (true)
         {
             Token next = lexer.getNextToken();
