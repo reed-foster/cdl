@@ -291,7 +291,7 @@ public class Parser extends LexicalAnalyzer
         Tokentype t = this.currenttok.type;
         attributes.put("value", this.currenttok.value);
         attributes.put("type", t)
-        if (t == Tokentype.DECINTCONST || t == Tokentype.BININTCONST || t == Tokentype.HEXINTCONST || t == Tokentype.BINVECCONST || t == Tokentype.HEXVECCONST || t == Tokentype.BOOLCONST)
+        if (t == Tokentype.DECINTCONST || t == Tokentype.BININTCONST || t == Tokentype.HEXINTCONST || t == Tokentype.BINVECCONST || t == Tokentype.HEXVECCONST)
             this.eat(t);
         else
             error("Unexpected Token", this.currenttok.value, this.lexer.getLine());
@@ -300,46 +300,170 @@ public class Parser extends LexicalAnalyzer
 
     private Tree expression()
     {
-
+        Tree node = this.boolexpr();
+        if (this.currenttok.type == Tokentype.QUESTION)
+        {
+            List<Tree> children = new ArrayList<Tree>();
+            this.eat(Tokentype.QUESTION);
+            Tree left = this.expression();
+            this.eat(Tokentype.COLON);
+            children.add(node);
+            children.add(left);
+            children.add(this.expression());
+            node = new Tree(Nodetype.TERNARYOP, quickHashMap("type", "?"), children);
+        }
+        return node;
     }
 
     private Tree boolexpr()
     {
-
+        Tree node = this.boolfactor();
+        if (this.currenttok.type == Tokentype.AND || this.currenttok.type == Tokentype.OR || this.currenttok.type == Tokentype.XOR)
+        {
+            Map<String, String> attributes = quickHashMap("type", this.currenttok.value);
+            List<Tree> children = new ArrayList<Tree>();
+            this.eat(this.currenttok.type);
+            children.add(node);
+            children.add(this.boolexpr());
+            node = new Tree(Nodetype.BINARYOP, attributes, children);
+        }
+        return node;
     }
 
     private Tree boolfactor()
     {
-
+        if (this.currenttok.type == Tokentype.NOT)
+        {
+            List<Tree> children = new ArrayList<Tree>();
+            this.eat(Tokentype.NOT);
+            children.add(this.relation());
+            return new Tree(Nodetype.UNARYOP, quickHashMap("type", "!"), children);
+        }
+        return this.relation();
     }
 
     private Tree relation()
     {
-
+        if (this.currenttok.type == Tokentype.BOOLCONST)
+        {
+            Tree node = new Tree(Nodetype.IDENTIFIER, quickHashMap("value", this.currenttok.value));
+            this.eat(Tokentype.BOOLCONST);
+            return node;
+        }
+        else
+        {
+            Tree node = this.sum();
+            Tokentype t = this.currenttok.type;
+            if (t == Tokentype.LT || t == Tokentype.GT || t == Tokentype.LTEQ || t == Tokentype.GTEQ || t == Tokentype.EQ || t == Tokentype.NE)
+            {
+                Map<String, String> attributes = quickHashMap("type", this.currenttok.value);
+                List<Tree> children = new ArrayList<String>();
+                this.eat(t);
+                children.add(node);
+                children.add(this.sum());
+                node = new Tree(Nodetype.BINARYOP, attributes, children);
+            }
+            return node;
+        }
     }
 
     private Tree sum()
     {
-
+        Tree node = this.product();
+        Tokentype t = this.currenttok.type;
+        Tokentype v = this.currenttok.value;
+        if (t == Tokentype.ADD || t == Tokentype.SUB || t == Tokentype.AND || (v.compareTo("or") == 0 || v.compareTo("nor") == 0))
+        {
+            List<Tree> children = new ArrayList<Tree>();
+            this.eat(t);
+            children.add(node);
+            children.add(this.sum());
+            node = new Tree(Nodetype.BINARYOP, quickHashMap("type", v), children);
+        }
+        return node;
     }
 
     private Tree product()
     {
-
+        Tree node = this.factor();
+        Tokentype t = this.currenttok.type;
+        Tokentype v = this.currenttok.value;
+        if (t == Tokentype.MUL || t == Tokentype.DIV || t == Tokentype.MOD || (v.compareTo("and") == 0 || v.compareTo("nand") == 0 || v.compareTo("xor") == 0 || v.compareTo("xnor") == 0))
+        {
+            List<Tree> children = new ArrayList<Tree>();
+            this.eat(t);
+            children.add(node);
+            children.add(this.product());
+            node = new Tree(Nodetype.BINARYOP, quickHashMap("type", v), children);
+        }
+        return node;
     }
 
     private Tree factor()
     {
-
+        if (this.currenttok.type == Tokentype.SUB || this.currenttok.value.compareTo("not") == 0)
+        {
+            Map<String, String> attributes = quickHashMap("type", this.currenttok.value);
+            List<Tree> children = new ArrayList<Tree>();
+            children.add(this.power();)
+            return new Tree(Nodetype.UNARYOP, attributes, children);
+        }
+        return this.power();
     }
 
     private Tree power()
     {
-
+        Tree node = this.term();
+        Tokentype t = this.currenttok.type;
+        if (t == Tokentype.EXP)
+        {
+            List<Tree> children = new ArrayList<Tree>();
+            this.eat(t);
+            children.add(node);
+            children.add(this.term());
+            node = new Tree(Nodetype.BINARYOP, quickHashMap("type", "**"), children);
+        }
+        return node;
     }
 
     private Tree term()
     {
+        Tree node;
+        Tokentype t = this.currenttok.type;
+        if (t == Tokentype.DECINTCONST || t == Tokentype.BININTCONST || t == Tokentype.HEXINTCONST || t == Tokentype.BINVECCONST || t == Tokentype.HEXVECCONST)
+        {
+            node = this.constant();
+        }
+        else if (t == Tokentype.LPAREN)
+        {
+            this.eat(LPAREN);
+            List<Tree> children = new ArrayList<Tree>();
+            children.add(this.expression());
+            node = new Tree(Nodetype.UNARYOP, quickHashMap("type", "()"), children);
+        }
+        else if (t == Tokentype.ID)
+        {
+            node = this.identifier();
+        }
+        else
+        {
+            error(String.format("Unexpected Token. Got: %s. Expected constant, identifier, or (expression)", this.currenttok.value));
+        }
 
+        if (this.currenttok.type == Tokentype.LBRACKET)
+        {
+            List<Tree> children = new ArrayList<Tree>();
+            children.add(node);
+            this.eat(Tokentype.LBRACKET);
+            children.add(this.expression());
+            if (this.currenttok.type == Tokentype.COLON)
+            {
+                this.eat(Tokentype.COLON);
+                children.add(this.expression());
+            }
+            this.eat(Tokentype.RBRACKET);
+            node = new Tree(Nodetype.TERNARYOP, quickHashMap("type", "[]"), children);
+        }
+        return node;
     }
 }
