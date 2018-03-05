@@ -31,8 +31,8 @@ component = component_declaration, LBRACE, component_body, RBRACE;
                     generate_for = "generate", "for", LPAREN, variable_declaration, EOL, boolexpr, EOL, expression, RPAREN, LBRACE, [generate_body], RBRACE;
                         generate_body = {signal_assignment};
 
-identifier = ID, [(PERIOD, ID)], [(LBRACKET, (expression | (expression, COLON, expression)), RBRACKET)];
-constant = BOOLCONST | BININTCONST | HEXINTCONST | DECINTCONST | BINVECCONST | HEXVECCONST | ID;
+identifier = ID, [PERIOD, ID];
+constant = BOOLCONST | BININTCONST | HEXINTCONST | DECINTCONST | BINVECCONST | HEXVECCONST;
 portdir = "input" | "output";
 type = "int" | "vec" | "bool";
 boolop = OR | AND | XOR;
@@ -43,12 +43,12 @@ mulop = MUL | DIV | MOD;
 bitwisemul = "and" | "nand" | "xor" | "xnor";
 
 (* Expression definition *)
-expression = (boolexpr, QUESTION, expression, COLON, expression) | sum;
+expression = boolexpr, QUESTION, expression, COLON, expression | sum;
 boolexpr = boolfactor, [boolop, boolexpr];
 boolfactor = [NOT], (relation | BOOLCONST | identifier);
 relation = sum, relop, sum;
-sum = product, [(addop | bitwiseadd), sum];
+sum = product, [(addop | bitwiseadd | AND), sum];
 product = factor, [(mulop | bitwisemul), product];
 factor = (SUB | BITWISENOT), factor | power;
 power = term, [EXP, power];
-term = constant | LPAREN, expression, RPAREN;
+term = term, LBRACKET, expression, [COLON, expression], RBRACKET | identifier | constant | LPAREN, expression, RPAREN;
