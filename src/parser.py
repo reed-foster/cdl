@@ -5,11 +5,20 @@ import lexer
 import ast
 from enums import *
 
+class Component(object):
+    def __init__(self, siglist = {}, varlist = {}, portlist = {}, genlist = {}, tree = ast.AST()):
+        self.siglist = siglist
+        self.varlist = varlist
+        self.portlist = portlist
+        self.complist = complist
+        self.tree = tree
+
 class Parser(object):
 
     def __init__(self, lexer):
         self.lexer = lexer
         self.current_token = self.lexer.getNextToken()
+        self.component = Component()
         self.complist = {}
         self.veclist = {} # list of all identifiers (signals, variables, or generics) that are type vector
 
