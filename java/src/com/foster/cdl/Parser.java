@@ -7,7 +7,7 @@ package com.foster.cdl;
 
 import java.util.*;
 
-public class Parser extends LexicalAnalyzer
+public class Parser
 {
     private Token currenttok;
     private Lexer lexer;
@@ -44,21 +44,50 @@ public class Parser extends LexicalAnalyzer
     }
 
     /**
+    * Error thrower methods
+    * @throws SyntaxError
+    */
+    private static void error(String message, int line) throws SyntaxError
+    {
+        throw new SyntaxError(String.format("%s on line %d.", message, line));
+    }
+    public static void error(String message, String token, int line) throws SyntaxError
+    {
+        throw new SyntaxError(String.format("%s (%s) on line %d.", message, token, line));
+    }
+
+    /**
     * Initializes a hashmap with one key and one value
     * @param k key String
     * @param v value String
     * @return HashMap containing (k -> v)
     */
-    private Map quickHashMap(String k, String v)
+    private Map<String, String> quickHashMap(String k, String v)
     {
-        Map hm = new HashMap<String, String>();
+        Map<String, String> hm = new HashMap<String, String>();
         hm.put(k, v);
         return hm;
     }
 
+    /**
+    * Matches a token type to a list of token types
+    * @param type type of token to check against list of types
+    * @param matches varargs list of types to check against
+    * @return true if type matches at least one element of matches
+    */
+    private boolean match(Tokentype type, Tokentype ...matches)
+    {
+        for (Tokentype m : matches)
+        {
+            if (type == m)
+                return true;
+        }
+        return false;
+    }
+
     public Tree parse()
     {
-        
+        return null;
     }
 
     /**
@@ -106,7 +135,7 @@ public class Parser extends LexicalAnalyzer
             this.eat(Tokentype.LBRACKET);
             attributes.put("width", this.currenttok.value);
             this.eat(Tokentype.DECINTCONST);
-            this.eat(Tokentype.RBRCKET);
+            this.eat(Tokentype.RBRACKET);
         }
         this.eat(Tokentype.EOL);
         return new Tree(Nodetype.GENDEC, attributes);
@@ -150,7 +179,7 @@ public class Parser extends LexicalAnalyzer
             this.eat(Tokentype.LBRACKET);
             attributes.put("width", this.currenttok.value);
             this.eat(Tokentype.DECINTCONST);
-            this.eat(Tokentype.RBRCKET);
+            this.eat(Tokentype.RBRACKET);
         }
         this.eat(Tokentype.EOL);
         return new Tree(Nodetype.PORT, attributes);
@@ -169,10 +198,10 @@ public class Parser extends LexicalAnalyzer
         while (this.currenttok.type != Tokentype.RBRACE)
         {
             if (this.currenttok.value.compareTo("signal") == 0)
-                children.add(this.sigdec())
+                children.add(this.sigdec());
             else if (this.currenttok.type == Tokentype.ID)
             {
-                Tree id = self.identifier();
+                Tree id = this.identifier();
                 if (this.currenttok.type == Tokentype.LTEQ)
                 {
                     this.eat(Tokentype.LTEQ);
@@ -190,18 +219,18 @@ public class Parser extends LexicalAnalyzer
                     compattr.put("name", this.currenttok.value);
                     this.eat(Tokentype.ID);
                     this.eat(Tokentype.EQ);
-                    this.eat(Tokentype.RESERVED, "new")
+                    this.eat(Tokentype.RESERVED, "new");
                     this.eat(Tokentype.ID, id.attributes.get("value")); // verify assigned component instance is the same type as declared
                     this.eat(Tokentype.LPAREN);
-                    if (this.currenttok.type != Nodetype.RPAREN)
-                        compchildren.add(this.genericlist())
+                    if (this.currenttok.type != Tokentype.RPAREN)
+                        compchildren.add(this.genericlist());
                     children.add(new Tree(Nodetype.COMPDEC, compattr, compchildren));
                 }
             }
             else
                 error("Unexpected Token", this.currenttok.value, this.lexer.getline());
         }
-        return new Tree(Nodetype.ARCH, attributes, children);
+        return new Tree(Nodetype.ARCH, children);
     }
 
     /**
@@ -221,7 +250,7 @@ public class Parser extends LexicalAnalyzer
             this.eat(Tokentype.LBRACKET);
             attributes.put("width", this.currenttok.value);
             this.eat(Tokentype.DECINTCONST);
-            this.eat(Tokentype.RBRCKET);
+            this.eat(Tokentype.RBRACKET);
         }
         this.eat(Tokentype.EOL);
         return new Tree(Nodetype.SIGDEC, attributes);
@@ -290,11 +319,11 @@ public class Parser extends LexicalAnalyzer
         Map<String, String> attributes = new HashMap<String, String>();
         Tokentype t = this.currenttok.type;
         attributes.put("value", this.currenttok.value);
-        attributes.put("type", t)
-        if (t == Tokentype.DECINTCONST || t == Tokentype.BININTCONST || t == Tokentype.HEXINTCONST || t == Tokentype.BINVECCONST || t == Tokentype.HEXVECCONST)
+        attributes.put("type", t.toString());
+        if (match(t, Tokentype.DECINTCONST, Tokentype.BININTCONST, Tokentype.HEXINTCONST, Tokentype.BINVECCONST, Tokentype.HEXVECCONST))
             this.eat(t);
         else
-            error("Unexpected Token", this.currenttok.value, this.lexer.getLine());
+            error("Unexpected Token", this.currenttok.value, this.lexer.getline());
         return new Tree(Nodetype.CONSTANT, attributes);
     }
 
@@ -318,7 +347,7 @@ public class Parser extends LexicalAnalyzer
     private Tree boolexpr()
     {
         Tree node = this.boolfactor();
-        if (this.currenttok.type == Tokentype.AND || this.currenttok.type == Tokentype.OR || this.currenttok.type == Tokentype.XOR)
+        if (match(this.currenttok.type, Tokentype.AND, Tokentype.OR, Tokentype.XOR))
         {
             Map<String, String> attributes = quickHashMap("type", this.currenttok.value);
             List<Tree> children = new ArrayList<Tree>();
@@ -354,10 +383,10 @@ public class Parser extends LexicalAnalyzer
         {
             Tree node = this.sum();
             Tokentype t = this.currenttok.type;
-            if (t == Tokentype.LT || t == Tokentype.GT || t == Tokentype.LTEQ || t == Tokentype.GTEQ || t == Tokentype.EQ || t == Tokentype.NE)
+            if (match(t, Tokentype.LT, Tokentype.GT, Tokentype.LTEQ, Tokentype.GTEQ, Tokentype.EQ, Tokentype.NE))
             {
                 Map<String, String> attributes = quickHashMap("type", this.currenttok.value);
-                List<Tree> children = new ArrayList<String>();
+                List<Tree> children = new ArrayList<Tree>();
                 this.eat(t);
                 children.add(node);
                 children.add(this.sum());
@@ -371,8 +400,8 @@ public class Parser extends LexicalAnalyzer
     {
         Tree node = this.product();
         Tokentype t = this.currenttok.type;
-        Tokentype v = this.currenttok.value;
-        if (t == Tokentype.ADD || t == Tokentype.SUB || t == Tokentype.AND || (v.compareTo("or") == 0 || v.compareTo("nor") == 0))
+        String v = this.currenttok.value;
+        if (match(t, Tokentype.ADD, Tokentype.SUB, Tokentype.AND) || (v.compareTo("or") == 0 || v.compareTo("nor") == 0))
         {
             List<Tree> children = new ArrayList<Tree>();
             this.eat(t);
@@ -387,8 +416,8 @@ public class Parser extends LexicalAnalyzer
     {
         Tree node = this.factor();
         Tokentype t = this.currenttok.type;
-        Tokentype v = this.currenttok.value;
-        if (t == Tokentype.MUL || t == Tokentype.DIV || t == Tokentype.MOD || (v.compareTo("and") == 0 || v.compareTo("nand") == 0 || v.compareTo("xor") == 0 || v.compareTo("xnor") == 0))
+        String v = this.currenttok.value;
+        if (match(t, Tokentype.MUL, Tokentype.DIV, Tokentype.MOD) || (v.compareTo("and") == 0 || v.compareTo("nand") == 0 || v.compareTo("xor") == 0 || v.compareTo("xnor") == 0))
         {
             List<Tree> children = new ArrayList<Tree>();
             this.eat(t);
@@ -405,7 +434,7 @@ public class Parser extends LexicalAnalyzer
         {
             Map<String, String> attributes = quickHashMap("type", this.currenttok.value);
             List<Tree> children = new ArrayList<Tree>();
-            children.add(this.power();)
+            children.add(this.power());
             return new Tree(Nodetype.UNARYOP, attributes, children);
         }
         return this.power();
@@ -430,13 +459,13 @@ public class Parser extends LexicalAnalyzer
     {
         Tree node;
         Tokentype t = this.currenttok.type;
-        if (t == Tokentype.DECINTCONST || t == Tokentype.BININTCONST || t == Tokentype.HEXINTCONST || t == Tokentype.BINVECCONST || t == Tokentype.HEXVECCONST)
+        if (match(t, Tokentype.DECINTCONST, Tokentype.BININTCONST, Tokentype.HEXINTCONST, Tokentype.BINVECCONST, Tokentype.HEXVECCONST))
         {
             node = this.constant();
         }
         else if (t == Tokentype.LPAREN)
         {
-            this.eat(LPAREN);
+            this.eat(Tokentype.LPAREN);
             List<Tree> children = new ArrayList<Tree>();
             children.add(this.expression());
             node = new Tree(Nodetype.UNARYOP, quickHashMap("type", "()"), children);
@@ -447,7 +476,8 @@ public class Parser extends LexicalAnalyzer
         }
         else
         {
-            error(String.format("Unexpected Token. Got: %s. Expected constant, identifier, or (expression)", this.currenttok.value));
+            error(String.format("Unexpected Token. Got: %s. Expected constant, identifier, or (expression)", this.currenttok.value), this.lexer.getline());
+            return null;
         }
 
         if (this.currenttok.type == Tokentype.LBRACKET)
@@ -465,5 +495,13 @@ public class Parser extends LexicalAnalyzer
             node = new Tree(Nodetype.TERNARYOP, quickHashMap("type", "[]"), children);
         }
         return node;
+    }
+
+    public static void main(String[] args)
+    {
+        Parser p = new Parser(new Lexer("a < b & (c - b <= 0) ? b - b : a - b"));
+        Tree t = p.expression();
+        String s = t.visit(0);
+        System.out.println(s);
     }
 }
