@@ -22,16 +22,30 @@ public class Tree
 
     Tree(Nodetype nodetype, List<Tree> children)
     {
-        this(nodetype, new Map<String, String>(), children);
+        this(nodetype, new HashMap<String, String>(), children);
     }
 
     Tree(Nodetype nodetype, Map<String, String> attributes)
     {
-        this(nodetype, attributes, new List<Tree>());
+        this(nodetype, attributes, new ArrayList<Tree>());
     }
     
     public Tree getChild(int index)
     {
         return children.get(index);
+    }
+
+    public String visit(int depth)
+    {
+        String s = String.format("%s attr: %s.\n", this.nodetype.toString(), this.attributes.toString());
+        for (Tree child : this.children)
+        {
+            for (int i = 0; i <= depth; i ++)
+            {
+                s += "  ";
+            }
+            s = s + String.format("%s", child.visit(depth + 1));
+        }
+        return s;
     }
 }
