@@ -43,10 +43,10 @@ mulop = MUL | DIV | MOD;
 bitwisemul = "and" | "nand" | "xor" | "xnor";
 
 (* Expression definition *)
-expression = boolexpr, QUESTION, expression, COLON, expression | sum;
+expression = boolexpr, [QUESTION, expression, COLON, expression];
 boolexpr = boolfactor, [boolop, boolexpr];
 boolfactor = [NOT], (relation | BOOLCONST | identifier);
-relation = sum, relop, sum;
+relation = sum, [relop, sum];
 sum = product, [(addop | bitwiseadd | AND), sum];
 product = factor, [(mulop | bitwisemul), product];
 factor = (SUB | BITWISENOT), factor | power;
