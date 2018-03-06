@@ -7,17 +7,29 @@ package com.foster.cdl;
 
 import java.util.*;
 
-public class Lexer extends LexicalAnalyzer
+public class Lexer
 {
     // Initialize Reserved Keyword Sets
     public static final Set<String> PORTDIR = arrayToSet(new String[] {"input", "output"});
     public static final Set<String> TYPE = arrayToSet(new String[] {"int", "uint", "vec", "bool"});
     public static final Set<String> BITWISEOP = arrayToSet(new String[] {"and", "or", "not", "nand", "nor", "xor", "xnor"});
-    public static final Set<String> RESERVEDIDS = arrayToSet(new String[] {"component", "port", "arch", "signal", "variable", "new"}).addAll(TYPE).addAll(BITWISEOP).addAll(PORTDIR);
+    private static final Set<String> other = arrayToSet(new String[] {"component", "port", "arch", "signal", "variable", "new"});
+    public static final Set<String> RESERVEDIDS = combinesets(other, TYPE, BITWISEOP, PORTDIR);
 
     private static Set<String> arrayToSet(String[] array)
     {
         return new HashSet<String>(Arrays.asList(array));
+    }
+
+    @SafeVarargs // we don't care about the type of the varargs list, just the type of the elements
+    private static Set<String> combinesets(Set<String> ...sets)
+    {
+        Set<String> superset = new HashSet<String>();
+        for (Set<String> set : sets)
+        {
+            superset.addAll(set);
+        }
+        return superset;
     }
 
     private String source;
@@ -79,6 +91,15 @@ public class Lexer extends LexicalAnalyzer
         if (peekpos > this.source.length() - 1)
             return 0;
         return this.source.charAt(peekpos);
+    }
+
+    /**
+    * Error thrower method
+    * 
+    */
+    public static void error(String message, int col, int line) throws SyntaxError
+    {
+        throw new SyntaxError(String.format("%s at col %d on line %d.", message, col, line));
     }
 
     private static boolean isAlpha(char c)
@@ -143,11 +164,16 @@ public class Lexer extends LexicalAnalyzer
     */
     private Token getId()
     {
-        int stringend = this.pos;
-        while (isAlpha(this.source.charAt(stringend)) || isNum(this.source.charAt(stringend)))
-            stringend++;
-        String value = this.source.substring(this.pos, stringend);
-        this.advance(stringend - this.pos + 1);
+        List<Character> chars = new ArrayList<Character>();
+        while (isAlpha(this.currentchar) || isNum(this.currentchar)) // first character is always alpha; this method is only called if currentchar is alpha
+        {
+            chars.add(new Character(this.currentchar));
+            this.advance();
+        }
+        StringBuilder builder = new StringBuilder(chars.size());
+        for (Character c : chars)
+            builder.append(c);
+        String value = builder.toString();
         if (value.compareTo("true") == 0 || value.compareTo("false") == 0)
             return new Token(Tokentype.BOOLCONST, value);
         if (Lexer.RESERVEDIDS.contains(value))
