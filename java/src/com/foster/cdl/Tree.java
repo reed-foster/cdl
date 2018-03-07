@@ -37,7 +37,7 @@ public class Tree
 
     public String visit(int depth)
     {
-        String s = String.format("%s attr: %s.\n", this.nodetype.toString(), this.attributes.toString());
+        String s = String.format("%s : %s.\n", this.nodetype.toString(), this.attributes.toString());
         for (Tree child : this.children)
         {
             for (int i = 0; i <= depth; i ++)
