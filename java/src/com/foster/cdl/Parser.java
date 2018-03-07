@@ -469,6 +469,7 @@ public class Parser
             List<Tree> children = new ArrayList<Tree>();
             children.add(this.expression());
             node = new Tree(Nodetype.UNARYOP, quickHashMap("type", "()"), children);
+            this.eat(Tokentype.RPAREN);
         }
         else if (t == Tokentype.ID)
         {
@@ -499,9 +500,19 @@ public class Parser
 
     public static void main(String[] args)
     {
-        Parser p = new Parser(new Lexer("a < b & (c - b <= 0) ? b - b : a - b"));
-        Tree t = p.expression();
-        String s = t.visit(0);
-        System.out.println(s);
+        String[] tests = {
+            "a + b - 2 ** c",
+            "a & b",
+            "a ? 2 : 3",
+            "(b - a) <= 0 ? c : d"
+        };
+        for (String src : tests)
+        {
+            Parser p = new Parser(new Lexer(src));
+            Tree t = p.expression();
+            String s = t.visit(0);
+            System.out.println(String.format("Testing Expression: %s", src));
+            System.out.println(s);
+        }
     }
 }
