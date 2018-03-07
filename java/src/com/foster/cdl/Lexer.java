@@ -148,13 +148,20 @@ public class Lexer
         else if (type != Tokentype.DECINTCONST)
             error("Internal Error: Invalid Integer Type", this.col, this.line);
 
-        int stringend = this.pos;
+        List<Character> chars = new ArrayList<Character>();
         char upperbound = type == Tokentype.BININTCONST ? '1' : '9';
-        while ((this.source.charAt(stringend) >= '0' && this.source.charAt(stringend) <= upperbound)
-             || (type == Tokentype.HEXINTCONST && isAlpha(this.source.charAt(stringend))))
-            stringend++;
-        String value = this.source.substring(this.pos, stringend);
-        this.advance(stringend - this.pos + 1);
+        while ((this.currentchar >= '0' && this.currentchar <= upperbound)
+                || (type == Tokentype.HEXINTCONST && (isNum(this.currentchar)
+                    || (this.currentchar >= 'A' && this.currentchar <= 'F')
+                    || (this.currentchar >= 'a' && this.currentchar <= 'f'))))
+        {
+            chars.add(new Character(this.currentchar));
+            this.advance();
+        }
+        StringBuilder builder = new StringBuilder(chars.size());
+        for (Character c : chars)
+            builder.append(c);
+        String value = builder.toString();
         return new Token(type, value);
     }
     
