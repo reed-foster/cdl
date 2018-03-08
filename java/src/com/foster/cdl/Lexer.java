@@ -99,7 +99,7 @@ public class Lexer
     */
     public static void error(String message, int col, int line) throws SyntaxError
     {
-        throw new SyntaxError(String.format("%s at col %d on line %d.", message, col, line));
+        throw new SyntaxError(String.format("%s at col %d on line %d.", message, col + 1, line + 1));
     }
 
     private static boolean isAlpha(char c)
@@ -387,8 +387,6 @@ public class Lexer
                 }
                 return this.getInt(Tokentype.DECINTCONST);
             }
-            
-            System.out.println(this.source.charAt(this.pos));
             error("Invalid Character", this.col, this.line);
         }
         return new Token(Tokentype.EOF, "");

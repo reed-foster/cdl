@@ -27,7 +27,7 @@ public class Parser
         if (this.currenttok.type == type)
             this.currenttok = lexer.getNextToken();
         else
-            error("Unexpected Token", this.currenttok.value, this.lexer.getline());
+            error("Unexpected Token", String.format("Expected (%s), got (%s)", type.toString(), this.currenttok.type.toString()), this.lexer.getline());
     }
 
     /**
@@ -40,20 +40,16 @@ public class Parser
         if (this.currenttok.value.compareTo(value) == 0)
             this.eat(type);
         else
-            error("Unexpected Token", this.currenttok.value, this.lexer.getline());
+            error("Unexpected Token", String.format("Expected (%s), got (%s)", value, this.currenttok.value), this.lexer.getline());
     }
 
     /**
     * Error thrower methods
     * @throws SyntaxError
     */
-    private static void error(String message, int line) throws SyntaxError
+    private static void error(String type, String message, int line) throws SyntaxError
     {
-        throw new SyntaxError(String.format("%s on line %d.", message, line));
-    }
-    public static void error(String message, String token, int line) throws SyntaxError
-    {
-        throw new SyntaxError(String.format("%s (%s) on line %d.", message, token, line));
+        throw new SyntaxError(String.format("%s on line %d. %s.", type, line + 1, message));
     }
 
     /**
@@ -112,7 +108,7 @@ public class Parser
             else if (this.currenttok.value.compareTo("arch") == 0)
                 children.add(this.arch());
             else
-                error("Unexpected Token", this.currenttok.value, this.lexer.getline());
+                error("Unexpected Token", String.format("Expected RESERVED, PORT, or ARCH, got (%s)", this.currenttok.type.toString()), this.lexer.getline());
         }
         this.eat(Tokentype.RBRACE);
         attributes.put("name", name);
@@ -229,7 +225,7 @@ public class Parser
                 }
             }
             else
-                error("Unexpected Token", this.currenttok.value, this.lexer.getline());
+                error("Unexpected Token", String.format("Expected ID or SIGNAL, got (%s)", this.currenttok.type.toString()), this.lexer.getline());
         }
         return new Tree(Nodetype.ARCH, children);
     }
@@ -323,7 +319,7 @@ public class Parser
         if (match(t, Tokentype.DECINTCONST, Tokentype.BININTCONST, Tokentype.HEXINTCONST, Tokentype.BINVECCONST, Tokentype.HEXVECCONST))
             this.eat(t);
         else
-            error("Unexpected Token", this.currenttok.value, this.lexer.getline());
+            error("Unexpected Token", String.format("Expected CONSTANT, got (%s)", this.currenttok.type.toString()), this.lexer.getline());
         return new Tree(Nodetype.CONSTANT, attributes);
     }
 
@@ -514,7 +510,7 @@ public class Parser
         }
         else
         {
-            error(String.format("Unexpected Token. Got: %s. Expected constant, identifier, or (expression)", this.currenttok.value), this.lexer.getline());
+            error("Unexpected Token", String.format("Expected CONSTANT, IDENTIFIER, or LPAREN, got (%s)", this.currenttok.type.toString()), this.lexer.getline());
             return null;
         }
 
