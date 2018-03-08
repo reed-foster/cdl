@@ -181,7 +181,6 @@ public class Parser
             this.eat(Tokentype.DECINTCONST);
             this.eat(Tokentype.RBRACKET);
         }
-        this.eat(Tokentype.EOL);
         return new Tree(Nodetype.PORT, attributes);
     }
 
@@ -224,6 +223,8 @@ public class Parser
                     this.eat(Tokentype.LPAREN);
                     if (this.currenttok.type != Tokentype.RPAREN)
                         compchildren.add(this.genericlist());
+                    this.eat(Tokentype.RPAREN);
+                    this.eat(Tokentype.EOL);
                     children.add(new Tree(Nodetype.COMPDEC, compattr, compchildren));
                 }
             }
@@ -264,7 +265,6 @@ public class Parser
     {
         List<Tree> children = new ArrayList<Tree>();
         children.add(this.identifier(false));
-        this.eat(Tokentype.ID);
         this.eat(Tokentype.EQ);
         children.add(this.constant());
         Tree assignment = new Tree(Nodetype.BINARYOP, quickHashMap("type", "="), children);
@@ -327,6 +327,10 @@ public class Parser
         return new Tree(Nodetype.CONSTANT, attributes);
     }
 
+    /**
+    * Parses expressions: boolexpr (a bit of a misnomer) with an optional ternary operation
+    * @return Tree represeting parsed expression
+    */
     private Tree expression()
     {
         Tree node = this.boolexpr();
@@ -344,6 +348,10 @@ public class Parser
         return node;
     }
 
+    /**
+    * Parses boolexpr: boolfactor followed by an unlimited number of AND, OR, or XOR operators
+    * @return Tree representing parsed boolexpr
+    */
     private Tree boolexpr()
     {
         Tree node = this.boolfactor();
@@ -359,6 +367,10 @@ public class Parser
         return node;
     }
 
+    /**
+    * Parses boolfactor: a relation with an optional unary NOT operator preceeding it
+    * @return Tree representing parsed boolfactor
+    */
     private Tree boolfactor()
     {
         if (this.currenttok.type == Tokentype.NOT)
@@ -371,6 +383,10 @@ public class Parser
         return this.relation();
     }
 
+    /**
+    * Parses relation: (a misnomer; it's really a boolean constant, a relation, or a sum)
+    * @return Tree representing a parsed "relation"
+    */
     private Tree relation()
     {
         if (this.currenttok.type == Tokentype.BOOLCONST)
@@ -396,6 +412,10 @@ public class Parser
         }
     }
 
+    /**
+    * Parses sums: arbitrary number of products separated by ADD, SUB, AND (concatenation), bitwise OR, or bitwise NOR operators
+    * @return Tree of parsed sum
+    */
     private Tree sum()
     {
         Tree node = this.product();
@@ -412,6 +432,10 @@ public class Parser
         return node;
     }
 
+    /**
+    * Parses products: arbitrary number of factors separated by MUL, DIV, MOD, bitwise AND, bitwise NAND, bitwise XOR, or bitwise XNOR operators
+    * @return Tree of parsed product
+    */
     private Tree product()
     {
         Tree node = this.factor();
@@ -428,6 +452,10 @@ public class Parser
         return node;
     }
 
+    /**
+    * Parses factors: power with an optional unary SUB or bitwise NOT
+    * @return Tree of parsed factor
+    */
     private Tree factor()
     {
         if (this.currenttok.type == Tokentype.SUB || this.currenttok.value.compareTo("not") == 0)
@@ -440,6 +468,10 @@ public class Parser
         return this.power();
     }
 
+    /**
+    * Parses power: term with an optional exponentiation (to the power of another term)
+    * @return Tree of parsed power
+    */
     private Tree power()
     {
         Tree node = this.term();
@@ -455,6 +487,11 @@ public class Parser
         return node;
     }
 
+    /**
+    * Term parser: this is where it gets exciting. A term can consist of a constant (literal), identifier, or parenthetical *expression*. This allows nested expressions
+    * A term can be followed by a postfix splice operator which consists of an LBRACKET, an upper index, an optional lower index (separated by a COLON), and an RBRACKET
+    * @return Tree of parsed Term
+    */
     private Tree term()
     {
         Tree node;
@@ -498,21 +535,46 @@ public class Parser
         return node;
     }
 
+    /**
+    * Test Method
+    */
     public static void main(String[] args)
     {
-        String[] tests = {
+        String[] expressiontests = {
             "a + b - 2 ** c",
             "a & b",
             "a ? 2 : 3",
             "(b - a) <= 0 ? c : d"
         };
-        for (String src : tests)
+        String component = "component AndGate\n" +
+                        "{\n" +
+                        "  int width;\n" +
+                        "  int ports;\n" +
+                        "  port\n" +
+                        "  {\n" +
+                        "    input int inputint;\n" +
+                        "    input vec inputvec[3];\n" +
+                        "    output bool outputbool;\n" +
+                        "  }\n" +
+                        "  arch\n" +
+                        "  {\n" +
+                        "      signal vec foo[3];\n" +
+                        "      foo <= fox < banana;\n" +
+                        "      CompType compinst = new CompType(lol = 3, foo = 5, banana = x\"4\");\n" +
+                        "  }\n" +
+                        "}";
+        for (String src : expressiontests)
         {
             Parser p = new Parser(new Lexer(src));
             Tree t = p.expression();
             String s = t.visit(0);
-            System.out.println(String.format("Testing Expression: %s", src));
+            System.out.println(String.format("\nTesting Expression: %s", src));
             System.out.println(s);
         }
+        Parser p = new Parser(new Lexer(component));
+        Tree t = p.component();
+        String s = t.visit(0);
+        System.out.println("\nTesting Full component definition");
+        System.out.println(s);
     }
 }
