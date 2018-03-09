@@ -83,7 +83,7 @@ public class Parser
 
     public Tree parse()
     {
-        return null;
+        return this.component();
     }
 
     /**
@@ -212,6 +212,7 @@ public class Parser
                     List<Tree> compchildren = new ArrayList<Tree>();
 
                     compattr.put("name", this.currenttok.value);
+                    compattr.put("type", id.attributes.get("value"));
                     this.eat(Tokentype.ID);
                     this.eat(Tokentype.EQ);
                     this.eat(Tokentype.RESERVED, "new");
