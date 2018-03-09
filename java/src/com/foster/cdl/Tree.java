@@ -35,6 +35,11 @@ public class Tree
         return children.get(index);
     }
 
+    public List<Tree> getChildren()
+    {
+        return new ArrayList<Tree>(this.children);
+    }
+
     public String visit(int depth)
     {
         String s = String.format("%s : %s.\n", this.nodetype.toString(), this.attributes.toString());
