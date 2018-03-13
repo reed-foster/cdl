@@ -17,6 +17,38 @@ public class Parser
         this.lexer = lexer;
         this.currenttok = this.lexer.getNextToken();
     }
+
+    /**
+    * Matches a token type to a list of token types
+    * @param type type of token to check against list of types
+    * @param types varargs list of types to check against
+    * @return true if type matches at least one element of types
+    */
+    private static boolean match(Tokentype type, Tokentype ...types)
+    {
+        for (Tokentype t : types)
+        {
+            if (type == t)
+                return true;
+        }
+        return false;
+    }
+
+    /**
+    * Matches a string to a list of strings
+    * @param value of string to check against list of values
+    * @param values varargs list of values to check against
+    * @return true if value matches at least one element of values
+    */
+    private static boolean match(String value, String ...values)
+    {
+        for (String v : values)
+        {
+            if (v.compareTo(value) == 0)
+                return true;
+        }
+        return false;
+    }
     
     /**
     * "Eats" the current token; error checking method to verify that the current token is of the expected type
@@ -31,16 +63,25 @@ public class Parser
     }
 
     /**
-    * Advanced eat method; verifies that the current token's value is the same as the supplied String value
+    * Advanced eat method; verifies that the current token's value matches at least one of the elements of values
     * @param type same as normal eat method
-    * @param value checks against currenttok.value
+    * @param values list of values to check against currenttok.value
     */
-    private void eat(Tokentype type, String value)
+    private void eat(Tokentype type, String ...values)
     {
-        if (this.currenttok.value.compareTo(value) == 0)
+        if (match(this.currenttok.value, values))
             this.eat(type);
         else
-            error("Unexpected Token", String.format("Expected (%s), got (%s)", value, this.currenttok.value), this.lexer.getline());
+            error("Unexpected Token", String.format("Expected (%s), got (%s)", values.toString(), this.currenttok.value), this.lexer.getline());
+    }
+
+    /**
+    * eatType verifies that the current token is reserved and a valid type string
+    * calls method eat with the parameters Tokentype.RESERVED and "int", "uint", "vec", and "bool"
+    */
+    private void eatType()
+    {
+        this.eat(Tokentype.RESERVED, "int", "uint", "vec", "bool");
     }
 
     /**
@@ -63,22 +104,6 @@ public class Parser
         Map<String, String> hm = new HashMap<String, String>();
         hm.put(k, v);
         return hm;
-    }
-
-    /**
-    * Matches a token type to a list of token types
-    * @param type type of token to check against list of types
-    * @param matches varargs list of types to check against
-    * @return true if type matches at least one element of matches
-    */
-    private boolean match(Tokentype type, Tokentype ...matches)
-    {
-        for (Tokentype m : matches)
-        {
-            if (type == m)
-                return true;
-        }
-        return false;
     }
 
     public Tree parse()
@@ -123,9 +148,7 @@ public class Parser
     {
         Map<String, String> attributes = new HashMap<String, String>();
         attributes.put("type", this.currenttok.value);
-        this.eat(Tokentype.RESERVED, this.currenttok.value);
-        attributes.put("name", this.currenttok.value);
-        this.eat(Tokentype.ID);
+        this.eatType();
         if (attributes.get("type").compareTo("vec") == 0)
         {
             this.eat(Tokentype.LBRACKET);
@@ -133,6 +156,8 @@ public class Parser
             this.eat(Tokentype.DECINTCONST);
             this.eat(Tokentype.RBRACKET);
         }
+        attributes.put("name", this.currenttok.value);
+        this.eat(Tokentype.ID);
         this.eat(Tokentype.EOL);
         return new Tree(Nodetype.GENDEC, attributes);
     }
@@ -165,11 +190,9 @@ public class Parser
         Map<String, String> attributes = new HashMap<String, String>();
 
         attributes.put("direction", this.currenttok.value);
-        this.eat(Tokentype.RESERVED);
+        this.eat(Tokentype.RESERVED, "input", "output");
         attributes.put("type", this.currenttok.value);
-        this.eat(Tokentype.RESERVED);
-        attributes.put("name", this.currenttok.value);
-        this.eat(Tokentype.ID);
+        this.eatType();
         if (attributes.get("type").compareTo("vec") == 0)
         {
             this.eat(Tokentype.LBRACKET);
@@ -177,6 +200,8 @@ public class Parser
             this.eat(Tokentype.DECINTCONST);
             this.eat(Tokentype.RBRACKET);
         }
+        attributes.put("name", this.currenttok.value);
+        this.eat(Tokentype.ID);
         return new Tree(Nodetype.PORT, attributes);
     }
 
@@ -240,7 +265,7 @@ public class Parser
         Map<String, String> attributes = new HashMap<String, String>();
         this.eat(Tokentype.RESERVED, "signal");
         attributes.put("type", this.currenttok.value);
-        this.eat(Tokentype.RESERVED, this.currenttok.value);
+        this.eatType();
         attributes.put("name", this.currenttok.value);
         this.eat(Tokentype.ID);
         if (attributes.get("type").compareTo("vec") == 0)
@@ -570,8 +595,7 @@ public class Parser
         }
         Parser p = new Parser(new Lexer(component));
         Tree t = p.component();
-        String s = t.visit(0);
         System.out.println("\nTesting Full component definition");
-        System.out.println(s);
+        System.out.println(t);
     }
 }
