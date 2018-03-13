@@ -40,6 +40,11 @@ public class Tree
         return new ArrayList<Tree>(this.children);
     }
 
+    public String toString()
+    {
+        return this.visit(0);
+    }
+
     public String visit(int depth)
     {
         String s = String.format("%s : %s.\n", this.nodetype.toString(), this.attributes.toString());
