@@ -9,12 +9,35 @@ import java.util.*;
 
 public class SemanticAnalyzer
 {
-    private List<Tree> components;
+    private Map<String, Component> components;
 
+    private Set<String> visitedcomponentnames;
+
+    private ComponentTree dependencytree;
+
+    /**
+    * Constructor for semantic analysis of sources
+    * Allows for multiple component definitions in one source string, however the root component must be passed first
+    *
+    */
     SemanticAnalyzer(String source)
     {
-        components = new ArrayList<Tree>();
-        Parser parser;
+        this.components = new HashMap<String, Component>();
+        this.splitMultiComponentSource(source);
+    }
+
+    private static void circularError(String message) throws CircularReferenceError
+    {
+        throw new CircularReferenceError(message);
+    }
+
+    public void verify()
+    {
+        return;
+    }
+
+    private void splitMultiComponentSource(String source)
+    {
         int startindex = 0;
         int endindex = 0;
         do
@@ -22,53 +45,46 @@ public class SemanticAnalyzer
             startindex = source.indexOf("component", endindex);
             endindex = source.indexOf("component", startindex + 1);
             endindex = endindex == -1 ? source.length() - 1 : endindex;
-            parser = new Parser(new Lexer(source.substring(startindex, endindex)));
-            components.add(parser.parse());
+            Component c = new Component(source.substring(startindex, endindex));
+            this.components.put(c.name, c);
         } while (source.indexOf("component", endindex) != -1);
+        return;
     }
 
-    /*public void verify()
+    private void orderDependencies(String componentname)
     {
 
+        // should make a tree; iterate through component list, adding each component (unless it's already in the tree) and its subcomponents (regardless of whether or not it's already in the tree)
+        // if the component to add isn't in the tree but has subcomponents already in the tree, then there's a problem; throw an error 
+        this.visitedcomponentnames.add(componentname);
+        Component component = this.components.get(componentname);
+        Set<Map<String, String>> subcomponents = component.getSubcomponents();
+        if (subcomponents.isEmpty())
+        {
+            return;
+        }
+        for (Map<String, String> subcomponent : subcomponents)
+        {
+            String name = subcomponent.get("name");
+            if (this.visitedcomponentnames.contains(name))
+            {
+                circularError(String.format("Nested Components Detected: %s is defined as both a child and parent of %s.", name, componentname));
+            }
+            this.orderDependencies(name);
+        }
     }
 
-    private void orderDependencies()
+    private void sigAssignTypeCheck()
     {
-        for (Tree component : this.components)
+        for (Component component : this.components.values())
         {
-
+            
         }
-    }*/
-
-    private ArrayList<HashMap<String,String>> getCompDecs(Tree node)
-    {
-        if (node.nodetype == Nodetype.COMPDEC)
-        {
-            ArrayList<HashMap<String,String>> cdecs = new ArrayList<HashMap<String, String>>();
-            cdecs.add(new HashMap<String, String>(node.attributes));
-            return cdecs;
-        }
-        //getCompDecs on all children
-        ArrayList<HashMap<String,String>> compdecs = new ArrayList<HashMap<String, String>>();
-        for (Tree child : node.getChildren())
-        {
-            compdecs.addAll(this.getCompDecs(child));
-        }
-        return compdecs;
     }
 
     public static void main(String[] args)
     {
-        String source = "component C1{port{}arch{C2 c2 = new C2();C3 c3 = new C3();}} component C2{port{}arch{C3 c3 = new C3();}} component C3{port{}arch{}}";
-        SemanticAnalyzer s = new SemanticAnalyzer(source);
-        for (int i = 0; i < s.components.size(); i++)
-        {
-            System.out.println(String.format("component %s has the following dependencies", s.components.get(i).attributes.get("name")));
-            ArrayList<HashMap<String,String>> cdecs = s.getCompDecs(s.components.get(i));
-            for (Map cdec : cdecs)
-            {
-                System.out.println(cdec.get("type"));
-            }
-        }
+        String source = "component C1{port{input int foo; output vec[3] bar;}arch{C2 c2 = new C2();C3 c3 = new C3();}}\n" + 
+                        "component C2{port{}arch{C3 c3 = new C3();}}";
     }
 }
