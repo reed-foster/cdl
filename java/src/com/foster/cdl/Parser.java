@@ -413,7 +413,10 @@ public class Parser
     {
         if (this.currenttok.type == Tokentype.BOOLCONST)
         {
-            Tree node = new Tree(Nodetype.IDENTIFIER, quickHashMap("value", this.currenttok.value));
+            Map<String, String> attributes = new HashMap<String, String>();
+            attributes.put("value", this.currenttok.value);
+            attributes.put("type", this.currenttok.type.toString());
+            Tree node = new Tree(Nodetype.CONSTANT, attributes);
             this.eat(Tokentype.BOOLCONST);
             return node;
         }
