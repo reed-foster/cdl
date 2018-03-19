@@ -11,17 +11,134 @@ public class Component
 {
     public static final Set<Nodetype> DECLAREDIDENTIFIERNODES = new HashSet<Nodetype>(Arrays.asList(new Nodetype[] {Nodetype.PORT, Nodetype.GENDEC, Nodetype.SIGDEC, Nodetype.COMPDEC}));
 
-    private Tree ast;
+    public final String name;
+    public final Tree ast;
     private Map<Nodetype, Set<Map<String, String>>> declaredIdentifiers;
 
     Component(String source)
     {
         Parser p = new Parser(new Lexer(source));
         this.ast = p.parse();
+        this.name = this.ast.attributes.get("name");
         this.declaredIdentifiers = new HashMap<Nodetype, Set<Map<String, String>>>();
         for (Nodetype n : DECLAREDIDENTIFIERNODES)
             this.declaredIdentifiers.put(n, new HashSet<Map<String, String>>());
         this.getIdentifiers(ast);
+        this.checkTypes(ast);
+        this.replaceSubcompPorts(ast);
+    }
+
+    private void checkTypes(Tree node)
+    {
+        if (node.nodetype == Nodetype.BINARYOP && node.attributes.get("type").compareTo("<=") == 0)
+        {
+            //child0 width and type must match child1 width and type
+            String leftname;
+        }
+        else
+        {
+            for (Tree child : node.getChildren())
+                this.checkTypes(child);
+        }
+    }
+
+    private String expressionType(Tree node) // checks type consistency and usage of undeclared identifiers
+    {
+        switch (node.nodetype)
+        {
+            case TERNARYOP:
+                //if ternaryq do this. need to add stuff for ternary splice
+                if (node.attributes.get("type").compareTo("?"))
+                {
+                    String boolexprtype = expressionType(node.getChild(0));
+                    String lefttype = expressionType(node.getChild(1));
+                    String righttype = expressionType(node.getChild(2));
+                    if (boolexprtype.compareTo("bool") == 0)
+                    {
+                        if (lefttype.compareTo(righttype) == 0)
+                            return lefttype;
+                        // assigned types don't match
+                    }
+                    // boolexpr is not boolean
+                }
+                else if (node.attributes.get("type").compareTo("[]"))
+                {
+                    
+                }
+                break;
+            case BINARYOP:
+                String lefttype = expressionType(node.getChild(0));
+                String righttype = expressionType(node.getChild(1));
+                if (lefttype.compareTo(righttype) == 0)
+                {
+                    if (true) // check operator matches lefttype
+                    switch (node.attributes.get("type"))
+                        case "!":
+                        case "<":
+                        case ">":
+                        case "<=":
+                        case ">=":
+                        case "==":
+                        case "!=":
+                        case "+":
+                        case "-":
+                        case "*":
+                        case "**":
+                        case "/":
+                        case "%":
+                        case "^":
+                        case "&":
+                        case "|":
+                        case ".":
+                        return lefttype;
+                }
+                // assigned types don't match
+                break;
+            case UNARYOP:
+                String type = expressionType(node.getChild(0));
+                switch (node.attributes.get("type"))
+                    case "!":
+                        if (type.compareTo("bool") == 0)
+                            return type;
+                        break;
+                    case "-":
+                        if (type.compareTo("int") == 0 || type.compareTo("uint") == 0 || type.compareTo("vec") == 0)
+                            return type;
+                        break;
+                    case "not":
+                        if (type.compareTo("vec") == 0)
+                            return type;
+                        break;
+                    case "()":
+                break;
+            case IDENTIFIER:
+                // if identifier is not in declared identifiers list, throw error
+                for (Set<Map<String, String>> declaredidset : this.declaredIdentifiers.values())
+                {
+                    for (Map<String, String> declaredid : declaredidset)
+                    {
+                        if (declaredid.get("name").compareTo(node.attributes.get("value")))
+                            return declaredid.get("type");
+                    }
+                }
+                //id isn't declared
+                break;
+            case CONSTANT:
+                switch (node.attributes.get("type"))
+                {
+                    case "DECINTCONST":
+                    case "BININTCONST":
+                    case "HEXINTCONST":
+                        return "int";
+                    case "BINVECCONST":
+                    case "HEXVECCONST":
+                        return "vec";
+                    case "BOOLCONST":
+                        return "bool";
+                }
+                break;
+        }
+        return null;
     }
 
     /**
