@@ -181,7 +181,7 @@ public class Lexer
         for (Character c : chars)
             builder.append(c);
         String value = builder.toString();
-        if (value.compareTo("true") == 0 || value.compareTo("false") == 0)
+        if (value.equals("true") || value.equals("false"))
             return new Token(Tokentype.BOOLCONST, value);
         if (Lexer.RESERVEDIDS.contains(value))
             return new Token(Tokentype.RESERVED, value);
