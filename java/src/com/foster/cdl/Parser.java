@@ -90,7 +90,7 @@ public class Parser
     */
     private static void error(String type, String message, int line) throws SyntaxError
     {
-        throw new SyntaxError(String.format("%s on line %d. %s.", type, line + 1, message));
+        throw new SyntaxError(String.format("%s on line %d. %s", type, line + 1, message));
     }
 
     /**
@@ -128,9 +128,9 @@ public class Parser
         {
             if (Lexer.TYPE.contains(this.currenttok.value))
                 children.add(this.gendec());
-            else if (this.currenttok.value.compareTo("port") == 0)
+            else if (this.currenttok.value.equals("port"))
                 children.add(this.portdec());
-            else if (this.currenttok.value.compareTo("arch") == 0)
+            else if (this.currenttok.value.equals("arch"))
                 children.add(this.arch());
             else
                 error("Unexpected Token", String.format("Expected RESERVED, PORT, or ARCH, got (%s)", this.currenttok.type.toString()), this.lexer.getline());
@@ -149,7 +149,7 @@ public class Parser
         Map<String, String> attributes = new HashMap<String, String>();
         attributes.put("type", this.currenttok.value);
         this.eatType();
-        if (attributes.get("type").compareTo("vec") == 0)
+        if (attributes.get("type").equals("vec"))
         {
             this.eat(Tokentype.LBRACKET);
             attributes.put("width", this.currenttok.value);
@@ -193,7 +193,7 @@ public class Parser
         this.eat(Tokentype.RESERVED, "input", "output");
         attributes.put("type", this.currenttok.value);
         this.eatType();
-        if (attributes.get("type").compareTo("vec") == 0)
+        if (attributes.get("type").equals("vec"))
         {
             this.eat(Tokentype.LBRACKET);
             attributes.put("width", this.currenttok.value);
@@ -217,7 +217,7 @@ public class Parser
         this.eat(Tokentype.LBRACE);
         while (this.currenttok.type != Tokentype.RBRACE)
         {
-            if (this.currenttok.value.compareTo("signal") == 0)
+            if (this.currenttok.value.equals("signal"))
                 children.add(this.sigdec());
             else if (this.currenttok.type == Tokentype.ID)
             {
@@ -268,7 +268,7 @@ public class Parser
         this.eatType();
         attributes.put("name", this.currenttok.value);
         this.eat(Tokentype.ID);
-        if (attributes.get("type").compareTo("vec") == 0)
+        if (attributes.get("type").equals("vec"))
         {
             this.eat(Tokentype.LBRACKET);
             attributes.put("width", this.currenttok.value);
@@ -309,7 +309,7 @@ public class Parser
     private Tree identifier(boolean allowcompound)
     {
         Map<String, String> attributes = new HashMap<String, String>();
-        attributes.put("value", this.currenttok.value);
+        attributes.put("name", this.currenttok.value);
         this.eat(Tokentype.ID);
         Tree left = new Tree(Nodetype.IDENTIFIER, attributes);
         if (allowcompound && this.currenttok.type == Tokentype.PERIOD)
@@ -446,7 +446,7 @@ public class Parser
         Tree node = this.product();
         Tokentype t = this.currenttok.type;
         String v = this.currenttok.value;
-        if (match(t, Tokentype.ADD, Tokentype.SUB, Tokentype.AND) || (v.compareTo("or") == 0 || v.compareTo("nor") == 0))
+        if (match(t, Tokentype.ADD, Tokentype.SUB, Tokentype.AND) || (v.equals("or") || v.equals("nor")))
         {
             List<Tree> children = new ArrayList<Tree>();
             this.eat(t);
@@ -466,7 +466,7 @@ public class Parser
         Tree node = this.factor();
         Tokentype t = this.currenttok.type;
         String v = this.currenttok.value;
-        if (match(t, Tokentype.MUL, Tokentype.DIV, Tokentype.MOD) || (v.compareTo("and") == 0 || v.compareTo("nand") == 0 || v.compareTo("xor") == 0 || v.compareTo("xnor") == 0))
+        if (match(t, Tokentype.MUL, Tokentype.DIV, Tokentype.MOD) || (v.equals("and") || v.equals("nand") || v.equals("xor") || v.equals("xnor")))
         {
             List<Tree> children = new ArrayList<Tree>();
             this.eat(t);
@@ -483,7 +483,7 @@ public class Parser
     */
     private Tree factor()
     {
-        if (this.currenttok.type == Tokentype.SUB || this.currenttok.value.compareTo("not") == 0)
+        if (this.currenttok.type == Tokentype.SUB || this.currenttok.value.equals("not"))
         {
             Map<String, String> attributes = quickHashMap("type", this.currenttok.value);
             List<Tree> children = new ArrayList<Tree>();
