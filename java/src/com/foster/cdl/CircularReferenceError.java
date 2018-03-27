@@ -4,6 +4,6 @@ class CircularReferenceError extends Error
 {
     CircularReferenceError(String message)
     {
-        super(message);
+        super(String.format("CircularReferenceError: %s.", message));
     }
 }

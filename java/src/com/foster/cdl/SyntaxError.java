@@ -4,6 +4,6 @@ class SyntaxError extends Error
 {
     SyntaxError(String message)
     {
-        super(message);
+        super(String.format("SyntaxError: %s.", message));
     }
 }
