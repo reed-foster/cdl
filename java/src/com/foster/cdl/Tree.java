@@ -29,6 +29,21 @@ public class Tree
     {
         this(nodetype, attributes, new ArrayList<Tree>());
     }
+
+    public void addChild(Tree child)
+    {
+        this.children.add(child);
+    }
+
+    public void removeChild(int index)
+    {
+        this.children.remove(index);
+    }
+
+    public int numChildren()
+    {
+        return this.children.size();
+    }
     
     public Tree getChild(int index)
     {
