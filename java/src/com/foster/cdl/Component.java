@@ -24,8 +24,16 @@ public class Component
         for (Nodetype n : DECLAREDIDENTIFIERNODES)
             this.declaredIdentifiers.put(n, new HashSet<Map<String, String>>());
         this.getIdentifiers(ast);
-        this.checkTypes(ast);
-        this.replaceSubcompPorts(ast);
+    }
+
+    private static void typeError(String message) throws TypeError
+    {
+        throw new TypeError(message);
+    }
+
+    private static void nameError(String message) throws NameError
+    {
+        throw new NameError(message);
     }
 
     private void checkTypes(Tree node)
@@ -42,6 +50,16 @@ public class Component
         }
     }
 
+    private static boolean isIntegral(String type)
+    {
+        return type.equals("int") || type.equals("uint");
+    }
+
+    private static boolean isNumeric(String type)
+    {
+        return isIntegral(type) || type.equals("vec");
+    }
+
     private String expressionType(Tree node) // checks type consistency and usage of undeclared identifiers
     {
         switch (node.nodetype)
@@ -53,7 +71,7 @@ public class Component
                     String boolexprtype = expressionType(node.getChild(0));
                     String lefttype = expressionType(node.getChild(1));
                     String righttype = expressionType(node.getChild(2));
-                    if (boolexprtype.compareTo("bool") == 0)
+                    if (boolexprtype.equals("bool"))
                     {
                         if (lefttype.compareTo(righttype) == 0)
                             return lefttype;
@@ -63,53 +81,78 @@ public class Component
                 }
                 else if (node.attributes.get("type").compareTo("[]"))
                 {
-                    
+                    List<String> children = node.getChildren();
+                    String lefttype = expressionType(children.get(0));
+                    String uppertype = expressionType(children.get(1));
+                    String lowertype = uppertype;
+                    if (children.size() == 3)
+                        lowertype = expressionType(children.get(2));
+                    if (lefttype.equals("vec"))
+                    {
+                        if (isIntegral(uppertype) && isIntegral(lowertype))
+                            return "vec";
+                        // bounds aren't integers
+                    }
+                    // non-vector object is being spliced
                 }
                 break;
             case BINARYOP:
                 String lefttype = expressionType(node.getChild(0));
                 String righttype = expressionType(node.getChild(1));
-                if (lefttype.compareTo(righttype) == 0)
-                {
-                    if (true) // check operator matches lefttype
-                    switch (node.attributes.get("type"))
-                        case "!":
-                        case "<":
-                        case ">":
-                        case "<=":
-                        case ">=":
-                        case "==":
-                        case "!=":
-                        case "+":
-                        case "-":
-                        case "*":
-                        case "**":
-                        case "/":
-                        case "%":
-                        case "^":
-                        case "&":
-                        case "|":
-                        case ".":
-                        return lefttype;
-                }
+                switch (node.attributes.get("type"))
+                    case "<":
+                    case ">":
+                    case "<=":
+                    case ">=":
+                    case "==":
+                    case "!=":
+                        if (isNumeric(lefttype) && isNumeric(righttype))
+                            return "bool";
+                        break;
+                    case "+":
+                    case "-":
+                    case "*":
+                    case "/":
+                        if (isNumeric(lefttype) && isNumeric(righttype))
+                            return lefttype;
+                        break;
+                    case "%":
+                        if (isIntegral(lefttype) && isIntegral(righttype))
+                            return lefttype;
+                        break;
+                    case "**":
+                        if (isNumeric(lefttype) && isIntegral(righttype))
+                            return lefttype;
+                        break;
+                    case "^":
+                    case "&":
+                    case "|":
+                        if (lefttype.equals("bool") && righttype.equals("bool"))
+                            return "bool";
+                        break;
+                    case ".":
+                        //return error, should've been replaced with temp string in dependency checking
+                        return righttype; //not correct, but leave it for now
+                        break;
                 // assigned types don't match
                 break;
             case UNARYOP:
                 String type = expressionType(node.getChild(0));
                 switch (node.attributes.get("type"))
                     case "!":
-                        if (type.compareTo("bool") == 0)
+                        if (type.equals("bool"))
                             return type;
                         break;
                     case "-":
-                        if (type.compareTo("int") == 0 || type.compareTo("uint") == 0 || type.compareTo("vec") == 0)
+                        if (isNumeric(type))
                             return type;
                         break;
                     case "not":
-                        if (type.compareTo("vec") == 0)
+                        if (type.equals("vec"))
                             return type;
                         break;
                     case "()":
+                        return type;
                 break;
             case IDENTIFIER:
                 // if identifier is not in declared identifiers list, throw error
@@ -122,6 +165,7 @@ public class Component
                     }
                 }
                 //id isn't declared
+                nameError(String.format("Identifier %s is not declared", node.attributes.get("value")));
                 break;
             case CONSTANT:
                 switch (node.attributes.get("type"))
@@ -136,6 +180,7 @@ public class Component
                     case "BOOLCONST":
                         return "bool";
                 }
+                typeError(String.format("%s is not a valid type"))
                 break;
         }
         return null;
@@ -186,13 +231,13 @@ public class Component
         String s = "Component: " + this.ast.attributes.get("name");
         s += String.format("\n  Tree:\n    %s\n  Signals:", this.ast.visit(2));
         for (Map<String, String> signal : this.getSignals())
-            s += String.format("\n    name: %s, type: %s", signal.get("name"), signal.get("type")) + (signal.get("type").compareTo("vec") == 0 ? String.format(", width : %s", signal.get("width")) : "");
+            s += String.format("\n    name: %s, type: %s", signal.get("name"), signal.get("type")) + (signal.get("type").equals("vec") ? String.format(", width : %s", signal.get("width")) : "");
         s += "\n  Generics:";
         for (Map<String, String> generic : this.getGenerics())
-            s += String.format("\n    name: %s, type: %s", generic.get("name"), generic.get("type")) + (generic.get("type").compareTo("vec") == 0 ? String.format(", width : %s", generic.get("width")) : "");
+            s += String.format("\n    name: %s, type: %s", generic.get("name"), generic.get("type")) + (generic.get("type").equals("vec") ? String.format(", width : %s", generic.get("width")) : "");
         s += "\n  Ports:";
         for (Map<String, String> port : this.getPorts())
-            s += String.format("\n    name: %s, type: %s, direction: %s", port.get("name"), port.get("type"), port.get("direction")) + (port.get("type").compareTo("vec") == 0 ? String.format(", width : %s", port.get("width")) : "");
+            s += String.format("\n    name: %s, type: %s, direction: %s", port.get("name"), port.get("type"), port.get("direction")) + (port.get("type").equals("vec") ? String.format(", width : %s", port.get("width")) : "");
         s += "\n  Subcomponents:";
         for (Map<String, String> subcomponent : this.getSubcomponents())
             s += String.format("\n    name: %s, type: %s", subcomponent.get("name"), subcomponent.get("type"));
