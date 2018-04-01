@@ -10,18 +10,23 @@ import java.util.*;
 public class SemanticAnalyzer
 {
     private Map<String, Component> components;
+    private String topCompName;
 
-    private Set<String> visitedcomponentnames;
+    private DependencyGraph dependencyGraph;
 
-    private ComponentTree dependencytree;
+    private Map<String, Set<Map<String, String>>> tempSignals; // holds attributes of temp signals that need to be declared
+    private String currentComponent; // used by replaceCompoundID and addTempSigs for replacing compound identifiers
 
     /**
     * Constructor for semantic analysis of sources
     * Allows for multiple component definitions in one source string, however the root component must be passed first
-    *
+    * @param source String containing one or more source files. All component dependencies must be included
+    * @param top String name of top-level component
     */
-    SemanticAnalyzer(String source)
+    SemanticAnalyzer(String source, String top)
     {
+        this.topCompName = top;
+        this.dependencyGraph = new DependencyGraph();
         this.components = new HashMap<String, Component>();
         this.splitMultiComponentSource(source);
     }
@@ -53,24 +58,93 @@ public class SemanticAnalyzer
 
     private void orderDependencies(String componentname)
     {
-
-        // should make a tree; iterate through component list, adding each component (unless it's already in the tree) and its subcomponents (regardless of whether or not it's already in the tree)
-        // if the component to add isn't in the tree but has subcomponents already in the tree, then there's a problem; throw an error 
-        this.visitedcomponentnames.add(componentname);
         Component component = this.components.get(componentname);
         Set<Map<String, String>> subcomponents = component.getSubcomponents();
         if (subcomponents.isEmpty())
-        {
             return;
-        }
         for (Map<String, String> subcomponent : subcomponents)
         {
             String name = subcomponent.get("name");
-            if (this.visitedcomponentnames.contains(name))
-            {
-                circularError(String.format("Nested Components Detected: %s is defined as both a child and parent of %s.", name, componentname));
-            }
+            this.dependencyGraph.addEdge(component.name, name);
             this.orderDependencies(name);
+        }
+        if (!this.dependencyGraph.acyclic())
+            circularError("Circular reference detected.");
+    }
+
+    private void replaceCompoundIDs()
+    {
+        for (Component component : this.components.values())
+        {
+            this.currentComponent = component.name;
+            this.replaceCompoundID(component.ast);
+
+        }
+    }
+
+    private void replaceCompoundID(Tree node)
+    {
+        for (int i = 0; i < node.numChildren(); i++)
+        {
+            Tree child = node.getChild(i);
+            if (child.nodetype == Nodetype.BINARYOP && child.attributes.get("type").equals("."))
+            {
+                String portname = child.getChild(1).attributes.get("name"); // get the name of the identfier to the right of the period operator
+                for (Component component : this.components)
+                {
+                    for (Map<String, String> port : component.getPorts())
+                    {
+                        if (port.get("name").equals(portname))
+                        {
+                            String name = c.name + "_" + port.get("name")
+                            Map<String, String> signalattr = new HashMap<String, String>();
+                            signalattr.put("name", name);
+                            signalattr.put("type", port.get("type"));
+                            if (port.containsKey("width"))
+                            {
+                                signalattr.put("width", port.get("width"));
+                            }
+                            this.tempSignals.get(this.currentComponent).add(signalattr); // need to modify so tempSignals differentiates between temp signals for each component, probably just add an additional parameter to the method
+                            node.removeChild(i);
+                            node.addChild(new Tree Nodetype.IDENTIFIER, signalattr); // replace compound identfier with temp. signal
+                        }
+                    }
+                }
+            }
+            else if (!child.children.isEmpty())
+            {
+                for (Tree grandchild : child.getChildren())
+                {
+                    this.replaceCompoundID(grandchild);
+                }
+            }
+        }
+    }
+
+    private void connectTempSigs()
+    {
+        for (String compname : this.components.keys())
+        {
+            this.currentComponent = compname;
+            this.addTempSigs(this.components.get(compname).ast);
+        }
+    }
+
+    private void addTempSigs(Tree node)
+    {
+        if (node.nodetype == Nodetype.ARCH)
+        {
+            for (Map<String, String> attributes : this.tempSignals.get(this.currentComponent))
+            {
+                node.addChild(new Tree(Nodetype.SIGDEC, attributes));
+            }
+        }
+        else if (!node.children.isEmpty())
+        {
+            for (Tree child : node.getChildren())
+            {
+                this.addTempSigs(child);
+            }
         }
     }
 
