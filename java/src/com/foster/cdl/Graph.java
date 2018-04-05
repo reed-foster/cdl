@@ -1,21 +1,21 @@
 /*
-DependencyGraph.java - Reed Foster
-Class for component dependency graph
+Graph.java - Reed Foster
+Graph class with strings for vertices
 */
 
 package com.foster.cdl;
 
 import java.util.*;
 
-public class DependencyGraph
+public class Graph
 {
-    private int v; //number of vertices
-    private Map<String, Integer> nameMap; //maps component names to index in adjacency list
+    private int vertices; //number of vertices
+    private Map<String, Integer> nameMap; //maps names to index in adjacency list
     private List<List<Integer>> adjacencyList;
 
-    DependencyGraph()
+    Graph()
     {
-        this.v = 0;
+        this.vertices = 0;
         this.nameMap = new HashMap<String, Integer>();
         this.adjacencyList = new ArrayList<List<Integer>>();
     }
@@ -35,14 +35,14 @@ public class DependencyGraph
             idx1 = this.adjacencyList.size();
             this.nameMap.put(vertex1, idx1);
             this.adjacencyList.add(new ArrayList<Integer>());
-            this.v++;
+            this.vertices++;
         }
         if (idx2 == -1) // new vertex
         {
             idx2 = this.adjacencyList.size();
             this.nameMap.put(vertex2, idx2);
             this.adjacencyList.add(new ArrayList<Integer>());
-            this.v++;
+            this.vertices++;
         }
         if (!this.adjacencyList.get(idx1).contains(idx2))
             this.adjacencyList.get(idx1).add(idx2); // if there isn't already an edge from vertex1 to vertex2, add it to the adjacency list
@@ -50,14 +50,14 @@ public class DependencyGraph
 
     public boolean acyclic()
     {
-        bool visited = new bool[this.v];
-        bool recStack = new bool[this.v];
-        for (int i = 0; i < this.v; i++)
+        bool visited = new bool[this.vertices];
+        bool recStack = new bool[this.vertices];
+        for (int i = 0; i < this.vertices; i++)
         {
             visited[i] = false;
             recStack[i] = false;
         }
-        for (int i = 0; i < this.v; i++)
+        for (int i = 0; i < this.vertices; i++)
         {
             if (cyclicUtil(i, visited, recStack))
                 return false;
