@@ -15,9 +15,12 @@ public class Tuple<T>
         this.b = b;
     }
 
-    @Override
-    public boolean equals(T other)
+    public boolean equals(Tuple<T> other)
     {
+        if (this == other)
+            return true;
+        if (other == null)
+            return false;
         if (!(other instanceof Tuple))
             return false;
         Tuple<T> other_ = (Tuple<T>) other;
