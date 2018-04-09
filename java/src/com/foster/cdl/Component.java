@@ -13,7 +13,7 @@ public class Component
 
     public final String name;
     public final Tree ast;
-    private Map<Nodetype, Set<Map<String, String>>> declaredIdentifiers;
+    private Map<Nodetype, Set<Map<String, String>>> declaredIdentifiers; // each set of maps is a set of all attributes from declarations
 
     Component(String source)
     {
