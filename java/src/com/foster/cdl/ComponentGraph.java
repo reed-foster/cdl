@@ -37,7 +37,9 @@ class ComponentGraph
             Component c = new Component(source.substring(start, end));
             this.components.put(c.name, c);
         } while (source.indexOf("component", end) != -1);
-        this.orderDependencies(this.topname);
+        this.orderDependencies();
+        this.checkCyclicity();
+        this.verifyAllComponents();
     }
 
     /**
@@ -59,21 +61,23 @@ class ComponentGraph
     }
 
     /**
-    * Recursively generate a graph of component dependencies.
+    * Iteratively generate a graph of component dependencies.
     * Creates edge between componentName and all of its known subcomponents
-    * @param componentName String of component currently being evaluated
     */
-    private void orderDependencies(String componentName)
+    private void orderDependencies()
     {
-        Component component = this.components.get(componentName);
-        Set<Map<String, String>> subcomponents = component.getSubcomponents();
-        if (subcomponents.isEmpty())
-            return;
-        for (Map<String, String> subcomponent : subcomponents)
+        for (Component component : this.components.values())
         {
-            String name = subcomponent.get("name");
-            this.dependencyGraph.addEdge(componentName, name)
-            this.orderDependencies(name);
+            Set<Map<String, String>> subcomponents = component.getSubcomponents();
+            if (subcomponents.isEmpty())
+                continue;
+            for (Map<String, String> subcomponent : subcomponents)
+            {
+                String name = subcomponent.get("type");
+                if (!this.components.containsKey(name))
+                    nameError(String.format("no component declaration for %s found", name));
+                this.dependencyGraph.addEdge(component.name, name);
+            }
         }
     }
 
@@ -105,7 +109,7 @@ class ComponentGraph
     */
     private void verifyComponent(Tree node)
     {
-        if (node.nodetype == Nodetype.BINARYOP && node.attributes.get("type").compareTo("<=") == 0)
+        if (node.nodetype == Nodetype.BINARYOP && node.attributes.get("type").equals("<="))
         {
             this.verifyExpression(node);
         }
@@ -125,14 +129,14 @@ class ComponentGraph
         switch (node.nodetype)
         {
             case TERNARYOP:
-                if (node.attributes.get("type").compareTo("?")) // if conditional ternary operator
+                if (node.attributes.get("type").equals("?")) // if conditional ternary operator
                 {
                     String boolexprtype = verifyExpression(node.getChild(0));
                     String lefttype = verifyExpression(node.getChild(1));
                     String righttype = verifyExpression(node.getChild(2));
                     if (boolexprtype.equals("bool"))
                     {
-                        if (lefttype.compareTo(righttype) == 0)
+                        if (lefttype.equals(righttype))
                             return lefttype;
                         // assigned types don't match
                         typeError("conditional assignment types don't match");
@@ -140,9 +144,9 @@ class ComponentGraph
                     // boolexpr is not boolean
                     typeError("expression before \"?\" operator is not boolean");
                 }
-                else if (node.attributes.get("type").compareTo("[]")) // if splice operator
+                else if (node.attributes.get("type").equals("[]")) // if splice operator
                 {
-                    List<String> children = node.getChildren();
+                    List<Tree> children = node.getChildren();
                     String lefttype = verifyExpression(children.get(0));
                     String uppertype = verifyExpression(children.get(1));
                     String lowertype = uppertype;
@@ -151,7 +155,7 @@ class ComponentGraph
                     if (lefttype.equals("vec"))
                     {
                         if (isIntegral(uppertype) && isIntegral(lowertype))
-                            return Tuple<String>("vec", width);
+                            return "vec";
                         // bounds aren't integers
                         typeError("bounds of vector splice must be integers");
                     }
@@ -163,6 +167,7 @@ class ComponentGraph
                 String lefttype = verifyExpression(node.getChild(0));
                 String righttype = verifyExpression(node.getChild(1));
                 switch (node.attributes.get("type"))
+                {
                     case "<":
                     case ">":
                     case "<=":
@@ -197,7 +202,7 @@ class ComponentGraph
                         // compinstID.portID
                         String compinstid = node.getChild(0).attributes.get("name");
                         String portid = node.getChild(1).attributes.get("name");
-                        for (Map<String, String> compdec : this.currentComponent.getSubcomponents())
+                        for (Map<String, String> compdec : this.components.get(this.currentComponent).getSubcomponents())
                         {
                             if (compdec.get("name").equals(compinstid)) // first find compinstid's component type
                             {
@@ -214,12 +219,14 @@ class ComponentGraph
                         // undeclared component
                         nameError(String.format("no component declaration for %s found", compinstid));
                         break;
+                }
                 // assigned types don't match
                 typeError(String.format("%s is undefined for types %s and %s", node.attributes.get("type")));
                 break;
             case UNARYOP:
                 String type = verifyExpression(node.getChild(0));
                 switch (node.attributes.get("type"))
+                {
                     case "!":
                         if (type.equals("bool"))
                             return type;
@@ -234,6 +241,7 @@ class ComponentGraph
                         break;
                     case "()":
                         return type;
+                }
                 break;
             case IDENTIFIER:
                 // if identifier is not in declared identifiers list, throw error
@@ -297,5 +305,14 @@ class ComponentGraph
     private static boolean isNumeric(String type)
     {
         return isIntegral(type) || type.equals("vec");
+    }
+
+    public static void main(String[] args)
+    {
+        String source = "component C1{port{}arch{C2 c2 = new C2();C3 c3 = new C3();}}\n" + 
+                        "component C2{port{}arch{C4 c3 = new C4();}}\n" +
+                        "component C3{port{}arch{}}";
+        ComponentGraph cg = new ComponentGraph(source, "C1");
+        System.out.println("Dependency test passed");
     }
 }
