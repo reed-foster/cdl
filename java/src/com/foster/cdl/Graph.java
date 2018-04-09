@@ -50,8 +50,8 @@ public class Graph
 
     public boolean acyclic()
     {
-        bool visited = new bool[this.vertices];
-        bool recStack = new bool[this.vertices];
+        boolean[] visited = new boolean[this.vertices];
+        boolean[] recStack = new boolean[this.vertices];
         for (int i = 0; i < this.vertices; i++)
         {
             visited[i] = false;
@@ -65,11 +65,11 @@ public class Graph
         return true;
     }
 
-    private boolean cyclicUtil(int vertex, bool visited[], bool recStack[])
+    private boolean cyclicUtil(int vertex, boolean[] visited, boolean[] recStack)
     {
         visited[vertex] = true;
         recStack[vertex] = true;
-        for (Integer chlid : this.adjacencyList.get(vertex))
+        for (Integer child : this.adjacencyList.get(vertex))
         {
             if (!visited[child]) //if the child vertex is not visited, recurse
             {
