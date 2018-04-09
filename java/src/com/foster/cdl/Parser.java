@@ -44,7 +44,7 @@ public class Parser
     {
         for (String v : values)
         {
-            if (v.compareTo(value) == 0)
+            if (value.equals(v))
                 return true;
         }
         return false;
@@ -59,7 +59,7 @@ public class Parser
         if (this.currenttok.type == type)
             this.currenttok = lexer.getNextToken();
         else
-            error("Unexpected Token", String.format("Expected (%s), got (%s)", type.toString(), this.currenttok.type.toString()), this.lexer.getline());
+            error("Unexpected Token", String.format("Expected (%s), got (%s)", type.toString(), this.currenttok.value.toString()), this.lexer.getline());
     }
 
     /**
@@ -133,7 +133,7 @@ public class Parser
             else if (this.currenttok.value.equals("arch"))
                 children.add(this.arch());
             else
-                error("Unexpected Token", String.format("Expected RESERVED, PORT, or ARCH, got (%s)", this.currenttok.type.toString()), this.lexer.getline());
+                error("Unexpected Token", String.format("Expected RESERVED, PORT, or ARCH, got (%s)", this.currenttok.value.toString()), this.lexer.getline());
         }
         this.eat(Tokentype.RBRACE);
         attributes.put("name", name);
@@ -237,11 +237,11 @@ public class Parser
                     List<Tree> compchildren = new ArrayList<Tree>();
 
                     compattr.put("name", this.currenttok.value);
-                    compattr.put("type", id.attributes.get("value"));
+                    compattr.put("type", id.attributes.get("name"));
                     this.eat(Tokentype.ID);
                     this.eat(Tokentype.EQ);
                     this.eat(Tokentype.RESERVED, "new");
-                    this.eat(Tokentype.ID, id.attributes.get("value")); // verify assigned component instance is the same type as declared
+                    this.eat(Tokentype.ID, id.attributes.get("name")); // verify assigned component instance is the same type as declared
                     this.eat(Tokentype.LPAREN);
                     if (this.currenttok.type != Tokentype.RPAREN)
                         compchildren.add(this.genericlist());
@@ -251,7 +251,7 @@ public class Parser
                 }
             }
             else
-                error("Unexpected Token", String.format("Expected ID or SIGNAL, got (%s)", this.currenttok.type.toString()), this.lexer.getline());
+                error("Unexpected Token", String.format("Expected ID or SIGNAL, got (%s)", this.currenttok.value.toString()), this.lexer.getline());
         }
         return new Tree(Nodetype.ARCH, children);
     }
@@ -345,7 +345,7 @@ public class Parser
         if (match(t, Tokentype.DECINTCONST, Tokentype.BININTCONST, Tokentype.HEXINTCONST, Tokentype.BINVECCONST, Tokentype.HEXVECCONST))
             this.eat(t);
         else
-            error("Unexpected Token", String.format("Expected CONSTANT, got (%s)", this.currenttok.type.toString()), this.lexer.getline());
+            error("Unexpected Token", String.format("Expected CONSTANT, got (%s)", this.currenttok.value.toString()), this.lexer.getline());
         return new Tree(Nodetype.CONSTANT, attributes);
     }
 
@@ -539,7 +539,7 @@ public class Parser
         }
         else
         {
-            error("Unexpected Token", String.format("Expected CONSTANT, IDENTIFIER, or LPAREN, got (%s)", this.currenttok.type.toString()), this.lexer.getline());
+            error("Unexpected Token", String.format("Expected CONSTANT, IDENTIFIER, or LPAREN, got (%s)", this.currenttok.value.toString()), this.lexer.getline());
             return null;
         }
 
