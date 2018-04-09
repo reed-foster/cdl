@@ -92,7 +92,7 @@ public class Tree
     /**
     * Helper method for toString()
     */
-    private String visit(int depth)
+    public String visit(int depth)
     {
         String s = String.format("%s : %s.\n", this.nodetype.toString(), this.attributes.toString());
         for (Tree child : this.children)
