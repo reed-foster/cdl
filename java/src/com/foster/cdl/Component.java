@@ -66,6 +66,21 @@ public class Component
         return this.declaredIdentifiers.get(Nodetype.COMPDEC);
     }
 
+    public Map<Nodetype, Set<Map<String, String>>> getDeclaredIdentifiers()
+    {
+        Map<Nodetype, Set<Map<String, String>>> declaredIDs = new HashMap<Nodetype, Set<Map<String, String>>>();
+        for (Nodetype n : DECLAREDIDENTIFIERNODES)
+            declaredIDs.put(n , new HashSet<Map<String, String>>());
+        for (Nodetype n : DECLAREDIDENTIFIERNODES)
+        {
+            Set<Map<String, String>> declarations = new HashSet<Map<String, String>>();
+            for (Map<String, String> declaration : this.declaredIdentifiers.get(n))
+                declarations.add(new HashMap<String, String>(declaration));
+            declaredIDs.put(n, declarations);
+        }
+        return declaredIDs;
+    }
+
     public String toString()
     {
         String s = "Component: " + this.ast.attributes.get("name");

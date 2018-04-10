@@ -196,7 +196,7 @@ class ComponentGraph
                     case "&":
                     case "|":
                         if (lefttype.equals("bool") && righttype.equals("bool"))
-                            return "bool";
+                            return lefttype;
                         break;
                     case ".":
                         // compinstID.portID
@@ -246,22 +246,19 @@ class ComponentGraph
             case IDENTIFIER:
                 // if identifier is not in declared identifiers list, throw error
                 // first try signals
-                for (Map<String, String> declaredSignal : this.components.get(this.currentComponent).getSignals())
+                Map<Nodetype, Set<Map<String, String>>> declaredIdentifiers = this.components.get(this.currentComponent).getDeclaredIdentifiers();
+                for (Nodetype n : declaredIdentifiers.keys())
                 {
-                    if (declaredSignal.get("name").equals(node.attributes.get("value")))
-                        return declaredSignal.get("type");
-                }
-                // now try ports
-                for (Map<String, String> declaredPort : this.components.get(this.currentComponent).getPorts())
-                {
-                    if (declaredPort.get("name").equals(node.attributes.get("value")))
-                        return declaredPort.get("type");
-                }
-                // now try generics
-                for (Map<String, String> declaredGeneric : this.components.get(this.currentComponent).getGenerics())
-                {
-                    if (declaredGeneric.get("name").equals(node.attributes.get("value")))
-                        return declaredGeneric.get("type");
+                    if (n == Nodetype.SIGDEC || n == Nodetype.PORT || n == Nodetype.GENDEC)
+                    {
+                        for (Map<String, String> declaration : declaredIdentifiers.get(n))
+                        {
+                            if (declaration.get("name").equals(node.attributes.get("value")))
+                            {
+                                return declaration.get("type");
+                            }
+                        }
+                    }
                 }
                 // id isn't declared
                 nameError(String.format("identifier %s is not declared", node.attributes.get("value")));
