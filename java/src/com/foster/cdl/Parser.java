@@ -244,7 +244,7 @@ public class Parser
                     this.eat(Tokentype.ID, id.attributes.get("name")); // verify assigned component instance is the same type as declared
                     this.eat(Tokentype.LPAREN);
                     if (this.currenttok.type != Tokentype.RPAREN)
-                        compchildren.add(this.genericlist());
+                        compchildren.addAll(this.genericlist());
                     this.eat(Tokentype.RPAREN);
                     this.eat(Tokentype.EOL);
                     children.add(new Tree(Nodetype.COMPDEC, compattr, compchildren));
@@ -272,7 +272,8 @@ public class Parser
         {
             this.eat(Tokentype.LBRACKET);
             attributes.put("width", this.currenttok.value);
-            this.eat(Tokentype.DECINTCONST);
+            if (match(this.currenttok.type, Tokentype.ID, Tokentype.DECINTCONST))
+                this.eat(this.currenttok.type);
             this.eat(Tokentype.RBRACKET);
         }
         this.eat(Tokentype.EOL);
@@ -281,24 +282,20 @@ public class Parser
 
     /**
     * Parses generic initialization assignments for component declaration and generic mapping
-    * @return Tree with root node of type Nodetype.BINARYOP and children of type Nodetype.BINARYOP, Nodetype.IDENTIFIER, and Nodetype.CONSTANT
+    * @return Tree with root node of type Nodetype.BINARYOP and children of type Nodetype.IDENTIFIER and all possible types expression() returns
     */
-    private Tree genericlist() // list of generic initializations for component declaration/generic mapping
+    private List<Tree> genericlist() // list of generic initializations for component declaration/generic mapping
     {
         List<Tree> children = new ArrayList<Tree>();
-        children.add(this.identifier(false));
-        this.eat(Tokentype.EQ);
-        children.add(this.constant());
-        Tree assignment = new Tree(Nodetype.BINARYOP, quickHashMap("type", "="), children);
-        if (this.currenttok.type == Tokentype.COMMA)
+        do
         {
-            this.eat(Tokentype.COMMA);
-            children = new ArrayList<Tree>();
-            children.add(assignment);
-            children.add(this.genericlist());
-            return new Tree(Nodetype.BINARYOP, quickHashMap("type", ","), children);
-        }
-        return assignment;
+            List<Tree> assignment = new ArrayList<Tree>();
+            assignment.add(this.identifier(false));
+            this.eat(Tokentype.EQ);
+            assignment.add(this.expression());
+            children.add(new Tree(Nodetype.BINARYOP, quickHashMap("type", "="), assignment));
+        } while (this.currenttok.type == Tokentype.COMMA);
+        return children;
     }
 
     /**
