@@ -288,6 +288,8 @@ public class Parser
         List<Tree> children = new ArrayList<Tree>();
         do
         {
+            if (this.currenttok.type == Tokentype.COMMA)
+                this.eat(Tokentype.COMMA);
             List<Tree> assignment = new ArrayList<Tree>();
             assignment.add(this.identifier(false));
             this.eat(Tokentype.EQ);
