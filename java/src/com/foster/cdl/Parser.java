@@ -146,20 +146,20 @@ public class Parser
     */
     private Tree gendec()
     {
+        List<Tree> children = new ArrayList<Tree>();
         Map<String, String> attributes = new HashMap<String, String>();
         attributes.put("type", this.currenttok.value);
         this.eatType();
         if (attributes.get("type").equals("vec"))
         {
             this.eat(Tokentype.LBRACKET);
-            attributes.put("width", this.currenttok.value);
-            this.eat(Tokentype.DECINTCONST);
+            children.add(this.expression());
             this.eat(Tokentype.RBRACKET);
         }
         attributes.put("name", this.currenttok.value);
         this.eat(Tokentype.ID);
         this.eat(Tokentype.EOL);
-        return new Tree(Nodetype.GENDEC, attributes);
+        return new Tree(Nodetype.GENDEC, attributes, children);
     }
 
     /**
@@ -187,6 +187,7 @@ public class Parser
     */
     private Tree port()
     {
+        List<Tree> children = new ArrayList<Tree>();
         Map<String, String> attributes = new HashMap<String, String>();
 
         attributes.put("direction", this.currenttok.value);
@@ -196,13 +197,12 @@ public class Parser
         if (attributes.get("type").equals("vec"))
         {
             this.eat(Tokentype.LBRACKET);
-            attributes.put("width", this.currenttok.value);
-            this.eat(Tokentype.DECINTCONST);
+            children.add(this.expression());
             this.eat(Tokentype.RBRACKET);
         }
         attributes.put("name", this.currenttok.value);
         this.eat(Tokentype.ID);
-        return new Tree(Nodetype.PORT, attributes);
+        return new Tree(Nodetype.PORT, attributes, children);
     }
 
     /**
@@ -262,22 +262,21 @@ public class Parser
     */
     private Tree sigdec()
     {
+        List<Tree> children = new ArrayList<Tree>();
         Map<String, String> attributes = new HashMap<String, String>();
         this.eat(Tokentype.RESERVED, "signal");
         attributes.put("type", this.currenttok.value);
         this.eatType();
-        attributes.put("name", this.currenttok.value);
-        this.eat(Tokentype.ID);
         if (attributes.get("type").equals("vec"))
         {
             this.eat(Tokentype.LBRACKET);
-            attributes.put("width", this.currenttok.value);
-            if (match(this.currenttok.type, Tokentype.ID, Tokentype.DECINTCONST))
-                this.eat(this.currenttok.type);
+            children.add(this.expression());
             this.eat(Tokentype.RBRACKET);
         }
+        attributes.put("name", this.currenttok.value);
+        this.eat(Tokentype.ID);
         this.eat(Tokentype.EOL);
-        return new Tree(Nodetype.SIGDEC, attributes);
+        return new Tree(Nodetype.SIGDEC, attributes, children);
     }
 
     /**
