@@ -19,9 +19,8 @@ class ComponentGraph
     /**
     * Constructor
     * @param source String source, can contain multiple component defintions
-    * @param top String name of top/root component in hierarchy
     */
-    ComponentGraph(String source, String top)
+    ComponentGraph(String source)
     {
         this.dependencyGraph = new Graph();
         this.components = new HashMap<String, Component>();
@@ -38,6 +37,7 @@ class ComponentGraph
             this.components.put(c.name, c);
         } while (source.indexOf("component", end) != -1);
         this.orderDependencies();
+        this.topname = this.dependencyGraph.rootVertex();
         this.checkCyclicity();
         this.verifyAllComponents();
     }
@@ -58,6 +58,15 @@ class ComponentGraph
     private static void nameError(String message) throws NameError
     {
         throw new NameError(message);
+    }
+
+    /**
+    * Wrapper method for throwing GenericErrors
+    * @param message String message to be printed
+    */
+    private static void genericError(String message) throws GenericError
+    {
+        throw new GenericError(message);
     }
 
     /**
@@ -92,14 +101,187 @@ class ComponentGraph
     }
 
     /**
-    * Verifies that all used identifiers are defined and that types match for binary operators
+    * Verifies semantics of all component definitions:
+    *  + check type/width in assignments
+    *  + verify all used identifiers are declared
+    *  + root component has no generics
+    *  + all generic assigments use generics or constants
+    *  + all splice operations use generics or constants
     */
     private void verifyAllComponents()
     {
+        // check root component has no generics
+        if (!this.components.get(this.topname).getGenerics().isEmpty())
+            genericError(String.format("top component %s cannot contain generics", this.topname));
+        // verify all components
         for (Component component : this.components.values())
         {
             this.currentComponent = component.name;
-            this.verifyComponent(component.ast);
+            this.verifyAssignments(component.ast);
+            this.verifyDeclarations(component.ast);
+            this.verifyWidths(new HashMap<String, String>(), this.topname); // since top component can't have generics, call verifyWidths with an empty genericMap
+        }
+
+
+    }
+
+    private void verifyWidths(Map<String, Tuple<String>> genericMap, String componentName)
+    {
+        List<Tree> subcomponents = getSubcomponentTrees(this.components.get(componentName).ast);
+        for (Tree subcomponent : subcomponents)
+        {
+            Map<String, Tuple<String>> newGenericMap = new HashMap<String, Tuple<String>>();
+            for (Tree genericAssign : subcomponent.getChildren())
+            {
+                String key = genericAssign.getChild(0).attributes.get("name");
+                Tuple<String> value = evaluateConstantExpression(genericMap, genericAssign.getChild(1));
+                newGenericMap.put(key, value);
+            }
+            this.verifyWidths(newGenericMap, subcomponent.attributes.get("name"));
+        }
+    }
+
+    /**
+    * Recursively visit each subtree of an expression, replacing identifiers with values retrieved from genericMap
+    * @param genericMap Map<String, Tuple<String>> of all generic's names and their assigned values in the particular component instance
+    * @param node Tree reference to subtree to evaluate (initally called with root node of expression)
+    * @return Tuple<String> result of evaluation of the expression, containing the value (field a) and type (field b)
+    */
+    private Tuple<String> evaluateConstantExpression(Map<String, Tuple<String>> genericMap, Tree node)
+    {
+        switch(node.nodetype)
+        {
+            case TERNARYOP:
+                if (node.attributes.get("type").equals("?"))
+                {
+                    Tuple<String> boolean = evaluateConstantExpression(genericMap, node.getChild(0));
+                    return boolean.equals("false") ? evaluateConstantExpression(genericMap, node.getChild(1)) : evaluateConstantExpression(genericMap, node.getChild(2));
+                }
+                if (node.attributes.get("type").equals("[]"))
+                {
+                    // this one'll be a little tricky to evaluate
+                    // we're also gonna check types for splice bounds here because verifyExpression() didn't have access to generics data
+                }
+                break;
+            case BINARYOP:
+                switch (node.attributes.get("type"))
+                {
+                    case "and":
+                    case "or":
+                    case "nand":
+                    case "nor":
+                    case "xor":
+                    case "xnor":
+                    case "<":
+                    case ">":
+                    case "<=":
+                    case ">=":
+                    case "==":
+                    case "!=":
+                    case "+":
+                    case "-":
+                    case "*":
+                    case "/":
+                    case "%":
+                    case "**":
+                    case "^":
+                    case "&":
+                    case "|":
+                }
+            case UNARYOP:
+            case IDENTIFIER: // must be generic because verifyDeclarations already checked this
+            case CONSTANT:
+        }
+        // ya done goofed, shouldn't ever be here
+    }
+
+    /**
+    * Helper method to retrieve the Tree representation of all subcomponents instantiated in the component whose AST is supplied to the method
+    * @param node Tree reference to subtree from which to retrieve subcomponent instances (initially called with root node of AST)
+    */
+    private static List<Tree> getSubcomponentTrees(Tree node)
+    {
+        if (node.nodetype == Nodetype.ARCH)
+        {
+            List<Tree> subcomponents = new ArrayList<Tree>();
+            for (Tree child : node.getChildren())
+            {
+                if (child.nodetype == Nodetype.COMPDEC)
+                {
+                    subcomponents.add(child);
+                }
+            }
+            return subcomponents;
+        }
+        else
+        {
+            for (Tree child : node.getChildren())
+                return getSubcomponentTrees(child);
+        }
+    }
+
+
+    /**
+    * Verifies that generics/constants are used for all vector declarations and component generic assignments
+    * @param node reference to subtree to verify (initially called with the root node of the component's AST)
+    */
+    private void verifyDeclarations(Tree node)
+    {
+        if (node.nodetype == Nodetype.SIGDEC || node.nodetype == Nodetype.PORT || node.nodetype == Nodetype.GENDEC)
+        {
+            if (node.attributes.get("type").equals("vec"))
+            {
+                if (node.getChildren().isEmpty())
+                    return;
+                for (Tree child : node.getChildren())
+                {
+                    if (!this.expressionIsConstant(child))
+                        typeError(String.format("declarations of %s of type vector contains a non-constant width", node.attributes.get("name")));
+                }
+            }
+        }
+        else if (node.nodetype == Nodetype.COMPDEC)
+        {
+            if (node.getChildren().isEmpty())
+                return;
+            for (Tree genericAssign : node.getChildren())
+            {
+                if (!this.expressionIsConstant(genericlist))
+                    typeError(String.format("component instantiation for %s contains non-constant generic assignments", node.attributes.get("name")));
+            }
+        }
+        else
+        {
+            for (Tree child : node.getChildren())
+                this.verifyDeclarations(child);
+        }
+    }
+
+    /**
+    * Verifies that an expression contains only generics and/or constants
+    * @param node reference to expression to check
+    */
+    private boolean expressionIsConstant(Tree node)
+    {
+        if (node.nodetype == Nodetype.CONSTANT)
+            return true;
+        else if (node.nodetype == Nodetype.IDENTIFIER)
+        {
+            for (Map<String, String> gendec : this.components.get(this.currentComponent).getGenerics())
+            {
+                if (gendec.get("name").equals(node.attributes.get("value")))
+                    return true;
+            }
+            return false;
+        }
+        else // expressions can only contain constants, identifiers, or unary, binary, and ternary operators
+        {
+            for (Tree child : node.getChildren())
+            {
+                if (!this.expressionIsConstant(child))
+                    return false;
+            }
+            return true;
         }
     }
 
@@ -107,7 +289,7 @@ class ComponentGraph
     * Verifies that, within a single component, all used identifiers are defined and types match for binary operators
     * @param node reference to subtree to verify (initially called with the root node of the component's AST)
     */
-    private void verifyComponent(Tree node)
+    private void verifyAssignments(Tree node)
     {
         if (node.nodetype == Nodetype.BINARYOP && node.attributes.get("type").equals("<="))
         {
@@ -116,7 +298,7 @@ class ComponentGraph
         else
         {
             for (Tree child : node.getChildren())
-                this.verifyComponent(child);
+                this.verifyAssignments(child);
         }
     }
 
@@ -147,27 +329,26 @@ class ComponentGraph
                 else if (node.attributes.get("type").equals("[]")) // if splice operator
                 {
                     List<Tree> children = node.getChildren();
-                    String lefttype = verifyExpression(children.get(0));
-                    String uppertype = verifyExpression(children.get(1));
-                    String lowertype = uppertype;
-                    if (children.size() == 3)
-                        lowertype = verifyExpression(children.get(2)); // lower and upper bound are the same
+                    String type = verifyExpression(children.get(0));
                     if (lefttype.equals("vec"))
-                    {
-                        if (isIntegral(uppertype) && isIntegral(lowertype))
-                            return "vec";
-                        // bounds aren't integers
-                        typeError("bounds of vector splice must be integers");
-                    }
-                    // non-vector object is being spliced
+                        return "vec";
                     typeError("non-vector types cannot be spliced");
                 }
                 break;
             case BINARYOP:
                 String lefttype = verifyExpression(node.getChild(0));
                 String righttype = verifyExpression(node.getChild(1));
-                switch (node.attributes.get("type"))
+                switch (node.attributes.get("type")) // need to add bitwise operators (e.g. "or", "and", etc.)
                 {
+                    case "and":
+                    case "or":
+                    case "nand":
+                    case "nor":
+                    case "xor":
+                    case "xnor":
+                        if (lefttype.equals("vec") && righttype.equals("vec"))
+                            return "vec";
+                        break;
                     case "<":
                     case ">":
                     case "<=":
