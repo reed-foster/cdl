@@ -119,13 +119,13 @@ public class Lexer
 
     /**
     * Parses vector literals
-    * @return Token for (bin|hex)vec constant
+    * @return Token for (bin|hex)vec literal
     */
     private Token getVec(Tokentype type)
     {
-        if (type == Tokentype.HEXVECCONST)
+        if (type == Tokentype.HEXVECLITERAL)
             this.advance(2);
-        else if (type == Tokentype.BINVECCONST)
+        else if (type == Tokentype.BINVECLITERAL)
             this.advance();
         else
             error("Internal Error: Invalid Vector Type", this.col, this.line);
@@ -139,19 +139,19 @@ public class Lexer
 
     /**
     * Parses integer literals
-    * @return Token for (bin|hex|dec)int constant
+    * @return Token for (bin|hex|dec)int literal
     */
     private Token getInt(Tokentype type)
     {
-        if (type == Tokentype.HEXINTCONST || type == Tokentype.BININTCONST)
+        if (type == Tokentype.HEXINTLITERAL || type == Tokentype.BININTLITERAL)
             this.advance(2);
-        else if (type != Tokentype.DECINTCONST)
+        else if (type != Tokentype.DECINTLITERAL)
             error("Internal Error: Invalid Integer Type", this.col, this.line);
 
         List<Character> chars = new ArrayList<Character>();
-        char upperbound = type == Tokentype.BININTCONST ? '1' : '9';
+        char upperbound = type == Tokentype.BININTLITERAL ? '1' : '9';
         while ((this.currentchar >= '0' && this.currentchar <= upperbound)
-                || (type == Tokentype.HEXINTCONST && (isNum(this.currentchar)
+                || (type == Tokentype.HEXINTLITERAL && (isNum(this.currentchar)
                     || (this.currentchar >= 'A' && this.currentchar <= 'F')
                     || (this.currentchar >= 'a' && this.currentchar <= 'f'))))
         {
@@ -182,7 +182,7 @@ public class Lexer
             builder.append(c);
         String value = builder.toString();
         if (value.equals("true") || value.equals("false"))
-            return new Token(Tokentype.BOOLCONST, value);
+            return new Token(Tokentype.BOOLLITERAL, value);
         if (Lexer.RESERVEDIDS.contains(value))
             return new Token(Tokentype.RESERVED, value);
         return new Token(Tokentype.ID, value);
@@ -367,9 +367,9 @@ public class Lexer
 
             // tokenize vector literals
             if (this.currentchar == 'x' && this.peek() == '"')
-                return this.getVec(Tokentype.HEXVECCONST);
+                return this.getVec(Tokentype.HEXVECLITERAL);
             if (this.currentchar == '"')
-                return this.getVec(Tokentype.BINVECCONST);
+                return this.getVec(Tokentype.BINVECLITERAL);
 
             // tokenize identifiers
             if (isAlpha(this.currentchar))
@@ -379,13 +379,13 @@ public class Lexer
             {
                 if (this.peek() == 'x')
                 {
-                    return this.getInt(Tokentype.HEXINTCONST);
+                    return this.getInt(Tokentype.HEXINTLITERAL);
                 }
                 else if (this.peek() == 'b')
                 {
-                    return this.getInt(Tokentype.BININTCONST);
+                    return this.getInt(Tokentype.BININTLITERAL);
                 }
-                return this.getInt(Tokentype.DECINTCONST);
+                return this.getInt(Tokentype.DECINTLITERAL);
             }
             error("Invalid Character", this.col, this.line);
         }

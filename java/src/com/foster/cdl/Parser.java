@@ -331,20 +331,20 @@ public class Parser
     }
 
     /**
-    * Parses constants/literals
-    * @return Tree with root node of type Nodetype.CONSTANT
+    * Parses literals
+    * @return Tree with root node of type Nodetype.LITERAL
     */
-    private Tree constant()
+    private Tree literal()
     {
         Map<String, String> attributes = new HashMap<String, String>();
         Tokentype t = this.currenttok.type;
         attributes.put("value", this.currenttok.value);
         attributes.put("type", t.toString());
-        if (match(t, Tokentype.DECINTCONST, Tokentype.BININTCONST, Tokentype.HEXINTCONST, Tokentype.BINVECCONST, Tokentype.HEXVECCONST))
+        if (match(t, Tokentype.DECINTLITERAL, Tokentype.BININTLITERAL, Tokentype.HEXINTLITERAL, Tokentype.BINVECLITERAL, Tokentype.HEXVECLITERAL))
             this.eat(t);
         else
-            error("Unexpected Token", String.format("Expected CONSTANT, got (%s)", this.currenttok.value.toString()), this.lexer.getline());
-        return new Tree(Nodetype.CONSTANT, attributes);
+            error("Unexpected Token", String.format("Expected LITERAL, got (%s)", this.currenttok.value.toString()), this.lexer.getline());
+        return new Tree(Nodetype.LITERAL, attributes);
     }
 
     /**
@@ -404,18 +404,18 @@ public class Parser
     }
 
     /**
-    * Parses relation: (a misnomer; it's really a boolean constant, a relation, or a sum)
+    * Parses relation: (a misnomer; it's really either a boolean literal, a relation, or a sum)
     * @return Tree representing a parsed "relation"
     */
     private Tree relation()
     {
-        if (this.currenttok.type == Tokentype.BOOLCONST)
+        if (this.currenttok.type == Tokentype.BOOLLITERAL)
         {
             Map<String, String> attributes = new HashMap<String, String>();
             attributes.put("value", this.currenttok.value);
             attributes.put("type", this.currenttok.type.toString());
-            Tree node = new Tree(Nodetype.CONSTANT, attributes);
-            this.eat(Tokentype.BOOLCONST);
+            Tree node = new Tree(Nodetype.LITERAL, attributes);
+            this.eat(Tokentype.BOOLLITERAL);
             return node;
         }
         else
@@ -511,7 +511,7 @@ public class Parser
     }
 
     /**
-    * Term parser: this is where it gets exciting. A term can consist of a constant (literal), identifier, or parenthetical *expression*. This allows nested expressions
+    * Term parser: this is where it gets exciting. A term can consist of a literal, identifier, or parenthetical *expression*. This allows nested expressions
     * A term can be followed by a postfix splice operator which consists of an LBRACKET, an upper index, an optional lower index (separated by a COLON), and an RBRACKET
     * @return Tree of parsed Term
     */
@@ -519,9 +519,9 @@ public class Parser
     {
         Tree node;
         Tokentype t = this.currenttok.type;
-        if (match(t, Tokentype.DECINTCONST, Tokentype.BININTCONST, Tokentype.HEXINTCONST, Tokentype.BINVECCONST, Tokentype.HEXVECCONST))
+        if (match(t, Tokentype.DECINTLITERAL, Tokentype.BININTLITERAL, Tokentype.HEXINTLITERAL, Tokentype.BINVECLITERAL, Tokentype.HEXVECLITERAL))
         {
-            node = this.constant();
+            node = this.literal();
         }
         else if (t == Tokentype.LPAREN)
         {
@@ -537,7 +537,7 @@ public class Parser
         }
         else
         {
-            error("Unexpected Token", String.format("Expected CONSTANT, IDENTIFIER, or LPAREN, got (%s)", this.currenttok.value.toString()), this.lexer.getline());
+            error("Unexpected Token", String.format("Expected LITERAL, IDENTIFIER, or LPAREN, got (%s)", this.currenttok.value.toString()), this.lexer.getline());
             return null;
         }
 
