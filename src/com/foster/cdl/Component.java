@@ -13,16 +13,16 @@ public class Component
 
     public final String name;
     public final Tree ast;
-    private Map<Nodetype, Set<Map<String, String>>> declaredIdentifiers; // each set of maps is a set of all attributes from declarations
+    private Map<Nodetype, Set<DeclaredIdentifier>> declaredIdentifiers; // each map of maps maps names of declared identifiers (keys) to their attributes (values; from ast)
 
     Component(String source)
     {
         Parser p = new Parser(new Lexer(source));
         this.ast = p.parse();
         this.name = this.ast.attributes.get("name");
-        this.declaredIdentifiers = new HashMap<Nodetype, Set<Map<String, String>>>();
+        this.declaredIdentifiers = new HashMap<Nodetype, Set<DeclaredIdentifier>>();
         for (Nodetype n : DECLAREDIDENTIFIERNODES)
-            this.declaredIdentifiers.put(n, new HashSet<Map<String, String>>());
+            this.declaredIdentifiers.put(n, new HashSet<DeclaredIdentifier>());
         this.getIdentifiers(ast);
     }
 
@@ -35,8 +35,8 @@ public class Component
     {
         if (DECLAREDIDENTIFIERNODES.contains(node.nodetype))
         {
-            Set<Map<String, String>> declarations = this.declaredIdentifiers.get(node.nodetype);
-            declarations.add(new HashMap<String, String>(node.attributes));
+            Set<DeclaredIdentifier> declarations = this.declaredIdentifiers.get(node.nodetype);
+            declarations.add(new DeclaredIdentifier(node.attributes.get("name"), node));
             this.declaredIdentifiers.put(node.nodetype, declarations);
         }
         else
@@ -46,43 +46,36 @@ public class Component
         }
     }
 
-    public Set<Map<String, String>> getSignals()
+    public Set<DeclaredIdentifier> getSignals()
     {
         return this.declaredIdentifiers.get(Nodetype.SIGDEC);
     }
 
-    public Set<Map<String, String>> getPorts()
+    public Set<DeclaredIdentifier> getPorts()
     {
         return this.declaredIdentifiers.get(Nodetype.PORT);
     }
 
-    public Set<Map<String, String>> getGenerics()
+    public Set<DeclaredIdentifier> getGenerics()
     {
         return this.declaredIdentifiers.get(Nodetype.GENDEC);
     }
 
-    public Set<Map<String, String>> getConstants()
+    public Set<DeclaredIdentifier> getConstants()
     {
         return this.declaredIdentifiers.get(Nodetype.CONST);
     }
 
-    public Set<Map<String, String>> getSubcomponents()
+    public Set<DeclaredIdentifier> getSubcomponents()
     {
         return this.declaredIdentifiers.get(Nodetype.COMPDEC);
     }
 
-    public Map<Nodetype, Set<Map<String, String>>> getDeclaredIdentifiers()
+    public Map<Nodetype, Set<DeclaredIdentifier>> getDeclaredIdentifiers()
     {
-        Map<Nodetype, Set<Map<String, String>>> declaredIDs = new HashMap<Nodetype, Set<Map<String, String>>>();
+        Map<Nodetype, Set<DeclaredIdentifier>> declaredIDs = new HashMap<Nodetype, Set<DeclaredIdentifier>>();
         for (Nodetype n : DECLAREDIDENTIFIERNODES)
-            declaredIDs.put(n , new HashSet<Map<String, String>>());
-        for (Nodetype n : DECLAREDIDENTIFIERNODES)
-        {
-            Set<Map<String, String>> declarations = new HashSet<Map<String, String>>();
-            for (Map<String, String> declaration : this.declaredIdentifiers.get(n))
-                declarations.add(new HashMap<String, String>(declaration));
-            declaredIDs.put(n, declarations);
-        }
+            declaredIDs.put(n , new HashSet<DeclaredIdentifier>(this.declaredIdentifiers.get(n)));
         return declaredIDs;
     }
 
@@ -90,17 +83,17 @@ public class Component
     {
         String s = "Component: " + this.ast.attributes.get("name");
         s += String.format("\n  Tree:\n    %s\n  Signals:", this.ast.visit(2));
-        for (Map<String, String> signal : this.getSignals())
-            s += String.format("\n    name: %s, type: %s", signal.get("name"), signal.get("type")) + (signal.get("type").equals("vec") ? String.format(", width : %s", signal.get("width")) : "");
+        for (DeclaredIdentifier signal : this.getSignals())
+            s += String.format("\n    name: %s, type: %s", signal.name, signal.declaration.attributes.get("type")) + (signal.declaration.attributes.get("type").equals("vec") ? String.format(", width : %s", signal.declaration.attributes.get("width")) : "");
         s += "\n  Generics:";
-        for (Map<String, String> generic : this.getGenerics())
-            s += String.format("\n    name: %s, type: %s", generic.get("name"), generic.get("type")) + (generic.get("type").equals("vec") ? String.format(", width : %s", generic.get("width")) : "");
+        for (DeclaredIdentifier generic : this.getGenerics())
+            s += String.format("\n    name: %s, type: %s", generic.declaration.attributes.get("name"), generic.declaration.attributes.get("type")) + (generic.declaration.attributes.get("type").equals("vec") ? String.format(", width : %s", generic.declaration.attributes.get("width")) : "");
         s += "\n  Ports:";
-        for (Map<String, String> port : this.getPorts())
-            s += String.format("\n    name: %s, type: %s, direction: %s", port.get("name"), port.get("type"), port.get("direction")) + (port.get("type").equals("vec") ? String.format(", width : %s", port.get("width")) : "");
+        for (DeclaredIdentifier port : this.getPorts())
+            s += String.format("\n    name: %s, type: %s, direction: %s", port.declaration.attributes.get("name"), port.declaration.attributes.get("type"), port.declaration.attributes.get("direction")) + (port.declaration.attributes.get("type").equals("vec") ? String.format(", width : %s", port.declaration.attributes.get("width")) : "");
         s += "\n  Subcomponents:";
-        for (Map<String, String> subcomponent : this.getSubcomponents())
-            s += String.format("\n    name: %s, type: %s", subcomponent.get("name"), subcomponent.get("type"));
+        for (DeclaredIdentifier subcomponent : this.getSubcomponents())
+            s += String.format("\n    name: %s, type: %s", subcomponent.declaration.attributes.get("name"), subcomponent.declaration.attributes.get("type"));
         return s;
     }
 
