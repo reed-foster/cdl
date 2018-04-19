@@ -219,6 +219,8 @@ public class Parser
         {
             if (this.currenttok.value.equals("signal"))
                 children.add(this.sigdec());
+            else if (this.currenttok.value.equals("const"))
+                children.add(this.constant());
             else if (this.currenttok.type == Tokentype.ID)
             {
                 Tree id = this.identifier();
@@ -277,6 +279,31 @@ public class Parser
         this.eat(Tokentype.ID);
         this.eat(Tokentype.EOL);
         return new Tree(Nodetype.SIGDEC, attributes, children);
+    }
+
+    /**
+    * Parses constant declarations ("const", {type}, {name}, "=", {expression})
+    * @return Tree with root node of type Nodetype.CONST
+    */
+    private Tree constant()
+    {
+        List<Tree> children = new ArrayList<Tree>();
+        Map<String, String> attributes = new HashMap<String, String>();
+        this.eat(Tokentype.RESERVED, "const");
+        attributes.put("type", this.currenttok.value);
+        this.eatType();
+        if (attributes.get("type").equals("vec"))
+        {
+            this.eat(Tokentype.LBRACKET);
+            children.add(this.expression());
+            this.eat(Tokentype.RBRACKET);
+        }
+        attributes.put("name", this.currenttok.value);
+        this.eat(Tokentype.ID);
+        this.eat(Tokentype.ASSIGN);
+        children.insert(this.expression(), 0); // put value of constant in first element of child list
+        this.eat(Tokentype.EOL);
+        return new Tree(Nodetype.CONST, attributes, children);
     }
 
     /**

@@ -9,7 +9,7 @@ import java.util.*;
 
 public class Component
 {
-    public static final Set<Nodetype> DECLAREDIDENTIFIERNODES = new HashSet<Nodetype>(Arrays.asList(new Nodetype[] {Nodetype.PORT, Nodetype.GENDEC, Nodetype.SIGDEC, Nodetype.COMPDEC}));
+    public static final Set<Nodetype> DECLAREDIDENTIFIERNODES = new HashSet<Nodetype>(Arrays.asList(new Nodetype[] {Nodetype.PORT, Nodetype.GENDEC, Nodetype.SIGDEC, Nodetype.CONST, Nodetype.COMPDEC}));
 
     public final String name;
     public final Tree ast;
@@ -59,6 +59,11 @@ public class Component
     public Set<Map<String, String>> getGenerics()
     {
         return this.declaredIdentifiers.get(Nodetype.GENDEC);
+    }
+
+    public Set<Map<String, String>> getConstants()
+    {
+        return this.declaredIdentifiers.get(Nodetype.CONST);
     }
 
     public Set<Map<String, String>> getSubcomponents()

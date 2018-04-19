@@ -13,7 +13,7 @@ public class Lexer
     public static final Set<String> PORTDIR = arrayToSet(new String[] {"input", "output"});
     public static final Set<String> TYPE = arrayToSet(new String[] {"int", "uint", "vec", "bool"});
     public static final Set<String> BITWISEOP = arrayToSet(new String[] {"and", "or", "not", "nand", "nor", "xor", "xnor"});
-    private static final Set<String> other = arrayToSet(new String[] {"component", "port", "arch", "signal", "variable", "new"});
+    private static final Set<String> other = arrayToSet(new String[] {"component", "port", "arch", "signal", "const", "variable", "new"});
     public static final Set<String> RESERVEDIDS = combinesets(other, TYPE, BITWISEOP, PORTDIR);
 
     private static Set<String> arrayToSet(String[] array)
