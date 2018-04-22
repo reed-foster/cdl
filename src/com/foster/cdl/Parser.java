@@ -301,7 +301,7 @@ public class Parser
         attributes.put("name", this.currenttok.value);
         this.eat(Tokentype.ID);
         this.eat(Tokentype.ASSIGN);
-        children.insert(this.expression(), 0); // put value of constant in first element of child list
+        children.add(this.expression());
         this.eat(Tokentype.EOL);
         return new Tree(Nodetype.CONST, attributes, children);
     }
