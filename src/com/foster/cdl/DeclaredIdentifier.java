@@ -10,11 +10,13 @@ import java.util.*;
 public class DeclaredIdentifier
 {
     public final String name;
+    public final String type;
     public final Tree declaration;
 
-    DeclaredIdentifier(String name, Tree declaration)
+    DeclaredIdentifier(Tree declaration)
     {
-        this.name = name;
+        this.name = declaration.attributes.get("name");
+        this.type = declaration.attributes.get("type");
         this.declaration = declaration;
     }
 

@@ -30,13 +30,19 @@ public class Component
     * Initializes signals, ports, generics, and subcomponents class fields.
     * These fields are used to verify that all identifiers that are used are signals, ports, or generics, and that types are usec properly
     * @param node current node of component AST. when called this should be the root node of type Nodetype.COMPONENT
+    * @throws NameError when an identifier is declared more than once
     */
-    private void getIdentifiers(Tree node)
+    private void getIdentifiers(Tree node) throws NameError
     {
         if (DECLAREDIDENTIFIERNODES.contains(node.nodetype))
         {
             Set<DeclaredIdentifier> declarations = this.declaredIdentifiers.get(node.nodetype);
-            declarations.add(new DeclaredIdentifier(node.attributes.get("name"), node));
+            for (DeclaredIdentifier declaration : declarations)
+            {
+                if (declaration.name.equals(node.attributes.get("name")))
+                    throw new NameError(String.format("(%s) declared multiple times", node.attributes.get("name")));
+            }
+            declarations.add(new DeclaredIdentifier(node));
             this.declaredIdentifiers.put(node.nodetype, declarations);
         }
         else
@@ -84,16 +90,16 @@ public class Component
         String s = "Component: " + this.ast.attributes.get("name");
         s += String.format("\n  Tree:\n    %s\n  Signals:", this.ast.visit(2));
         for (DeclaredIdentifier signal : this.getSignals())
-            s += String.format("\n    name: %s, type: %s", signal.name, signal.declaration.attributes.get("type")) + (signal.declaration.attributes.get("type").equals("vec") ? String.format(", width : %s", signal.declaration.attributes.get("width")) : "");
+            s += String.format("\n    name: %s, type: %s", signal.name, signal.type) + (signal.type.equals("vec") ? String.format(", width : %s", signal.declaration.attributes.get("width")) : "");
         s += "\n  Generics:";
         for (DeclaredIdentifier generic : this.getGenerics())
-            s += String.format("\n    name: %s, type: %s", generic.declaration.attributes.get("name"), generic.declaration.attributes.get("type")) + (generic.declaration.attributes.get("type").equals("vec") ? String.format(", width : %s", generic.declaration.attributes.get("width")) : "");
+            s += String.format("\n    name: %s, type: %s", generic.name, generic.type) + (generic.type.equals("vec") ? String.format(", width : %s", generic.declaration.attributes.get("width")) : "");
         s += "\n  Ports:";
         for (DeclaredIdentifier port : this.getPorts())
-            s += String.format("\n    name: %s, type: %s, direction: %s", port.declaration.attributes.get("name"), port.declaration.attributes.get("type"), port.declaration.attributes.get("direction")) + (port.declaration.attributes.get("type").equals("vec") ? String.format(", width : %s", port.declaration.attributes.get("width")) : "");
+            s += String.format("\n    name: %s, type: %s, direction: %s", port.name, port.type, port.declaration.attributes.get("direction")) + (port.type.equals("vec") ? String.format(", width : %s", port.declaration.attributes.get("width")) : "");
         s += "\n  Subcomponents:";
         for (DeclaredIdentifier subcomponent : this.getSubcomponents())
-            s += String.format("\n    name: %s, type: %s", subcomponent.declaration.attributes.get("name"), subcomponent.declaration.attributes.get("type"));
+            s += String.format("\n    name: %s, type: %s", subcomponent.name, subcomponent.type);
         return s;
     }
 
