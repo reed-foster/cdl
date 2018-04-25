@@ -77,11 +77,11 @@ public class Parser
 
     /**
     * eatType verifies that the current token is reserved and a valid type string
-    * calls method eat with the parameters Tokentype.RESERVED and "int", "uint", "vec", and "bool"
+    * calls method eat with the parameters Tokentype.RESERVED and "int", "vec", and "bool"
     */
     private void eatType()
     {
-        this.eat(Tokentype.RESERVED, "int", "uint", "vec", "bool");
+        this.eat(Tokentype.RESERVED, "int", "vec", "bool");
     }
 
     /**
@@ -207,7 +207,7 @@ public class Parser
 
     /**
     * Parses architecture ("arch", LBRACE, {archbody}, RBRACE)
-    * @return Tree with root node of type Nodetype.ARCH and children of type Nodetype.SIGDEC, Nodetype.COMPDEC, and Nodetype.BINARYOP
+    * @return Tree with root node of type Nodetype.ARCH and children of type Nodetype.SIGDEC, Nodetype.COMPDEC, Nodetype.CONST, and Nodetype.BINARYOP
     */
     private Tree arch()
     {

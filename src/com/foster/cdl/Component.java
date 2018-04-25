@@ -105,7 +105,7 @@ public class Component
 
     public static void main(String[] args)
     {
-        String source = "component C1{vec[3] gen;port{input vec[3] foo; input uint za; input bool re; output int bar;}arch{signal bool banana; C2 monkey = new C2();}}";
+        String source = "component C1{vec[3] gen;port{input vec[3] foo; input int za; input bool re; output int bar;}arch{signal bool banana; C2 monkey = new C2();}}";
         Component c = new Component(source);
         System.out.println(c);
     }

@@ -1,6 +1,6 @@
 /*
 SemanticAnalyzer.java - Reed Foster
-Stores all parsed components
+Stores and verifies all parsed components
 */
 
 package com.foster.cdl;
@@ -36,10 +36,19 @@ class SemanticAnalyzer
             Component c = new Component(source.substring(start, end));
             this.components.put(c.name, c);
         } while (source.indexOf("component", end) != -1);
-        this.orderDependencies();
+        this.orderDependencies(); // adds edges between each dependency in this.dependencyGraph
         this.topname = this.dependencyGraph.rootVertex();
         this.checkCyclicity();
         this.verifyAllComponents();
+    }
+
+    /**
+    * Accessor method for all components
+    * @return this.components
+    */
+    public Map<String, Component> getComponents()
+    {
+        return this.components;
     }
 
     /**
@@ -448,11 +457,11 @@ class SemanticAnalyzer
 
     /**
     * Helper method for type-checking
-    * @return true if type = "int" or "uint", false otherwise
+    * @return true if type = "int", false otherwise
     */
     private static boolean isIntegral(String type)
     {
-        return type.equals("int") || type.equals("uint");
+        return type.equals("int");
     }
 
     /**
