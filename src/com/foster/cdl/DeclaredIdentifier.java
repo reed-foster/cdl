@@ -25,4 +25,11 @@ public class DeclaredIdentifier
     {
         return this.name.hashCode();
     }
+
+    @override
+    public boolean equals(Object obj)
+    {
+        DeclaredIdentifier other = (DeclaredIdentifier) obj;
+        return this.name.equals(other.name);
+    }
 }
