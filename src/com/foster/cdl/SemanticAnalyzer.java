@@ -1,6 +1,11 @@
 /*
 SemanticAnalyzer.java - Reed Foster
 Stores and verifies all parsed components
+
+TODO:
+    check for duplicate port/arch declarations
+    check all identifiers used in generic assingment are actual generic names
+    check that all generic names are used in generic assignment
 */
 
 package com.foster.cdl;
@@ -24,7 +29,6 @@ class SemanticAnalyzer
     {
         this.dependencyGraph = new Graph();
         this.components = new HashMap<String, Component>();
-        this.topname = top;
         // split multiple component definitions
         int start = 0;
         int end = 0;
@@ -36,9 +40,14 @@ class SemanticAnalyzer
             Component c = new Component(source.substring(start, end));
             this.components.put(c.name, c);
         } while (source.indexOf("component", end) != -1);
-        this.orderDependencies(); // adds edges between each dependency in this.dependencyGraph
-        this.topname = this.dependencyGraph.rootVertex();
-        this.checkCyclicity();
+        if (this.components.size() == 1)
+            this.topname = this.components.keySet().iterator().next();
+        else
+        {
+            this.orderDependencies(); // adds edges between each dependency in this.dependencyGraph
+            this.topname = this.dependencyGraph.rootVertex();
+            this.checkCyclicity();
+        }
         this.verifyAllComponents();
     }
 
@@ -86,12 +95,12 @@ class SemanticAnalyzer
     {
         for (Component component : this.components.values())
         {
-            Set<Map<String, String>> subcomponents = component.getSubcomponents();
+            Set<DeclaredIdentifier> subcomponents = component.getSubcomponents();
             if (subcomponents.isEmpty())
                 continue;
-            for (Map<String, String> subcomponent : subcomponents)
+            for (DeclaredIdentifier subcomponent : subcomponents)
             {
-                String name = subcomponent.get("type");
+                String name = subcomponent.type;
                 if (!this.components.containsKey(name))
                     nameError(String.format("no component declaration for %s found", name));
                 this.dependencyGraph.addEdge(component.name, name);
@@ -162,7 +171,7 @@ class SemanticAnalyzer
         {
             // identifier
             Map<Nodetype, Set<DeclaredIdentifier>> declaredIDs = this.components.get(this.currentComponent).getDeclaredIdentifiers();
-            for (Nodetype n : declaredIDs.keys())
+            for (Nodetype n : declaredIDs.keySet())
             {
                 if (n == Nodetype.SIGDEC || n == Nodetype.PORT || n == Nodetype.GENDEC || n == Nodetype.CONST)
                 {
@@ -171,9 +180,9 @@ class SemanticAnalyzer
                         if (declaration.name.equals(node.attributes.get("name")))
                             return;
                     }
-                    nameError(String.format("undeclared identifier (%s)", node.attributes.get("name")));
                 }
             }
+            nameError(String.format("undeclared identifier (%s)", node.attributes.get("name")));
         }
         else
         {
@@ -193,7 +202,7 @@ class SemanticAnalyzer
         {
             if (node.attributes.get("type").equals("vec"))
             {
-                if (!this.expressionIsConstant(node.getChild(0), node.nodetype != Nodetype.GENDEC));
+                if (!this.expressionIsConstant(node.getChild(0), node.nodetype != Nodetype.GENDEC))
                     typeError(String.format("declarations of %s of type vector contains a non-constant width", node.attributes.get("name")));
             }
         }
@@ -222,7 +231,9 @@ class SemanticAnalyzer
     private boolean expressionIsConstant(Tree node, boolean allowGenerics)
     {
         if (node.nodetype == Nodetype.LITERAL)
+        {
             return true;
+        }
         else if (node.nodetype == Nodetype.IDENTIFIER)
         {
             if (!allowGenerics)
@@ -273,11 +284,14 @@ class SemanticAnalyzer
                     for (DeclaredIdentifier generic : generics)
                     {
                         if (generic.name.equals(genericName))
+                        {
                             lhsType = generic.type;
+                            String rhsType = this.verifyExpressionType(genericAssign.getChild(1));
+                            if (!lhsType.equals(rhsType))
+                                typeError(String.format("generic assignment (%s) and (%s) types don't match", lhsType, rhsType));
+                            return;
+                        }
                     }
-                    String rhsType = this.verifyExpressionType(genericAssign.getChild(1));
-                    if (!lhsType.equals(rhsType))
-                        typeError(String.format("generic assignment (%s) and (%s) types don't match", lhsType, rhsType));
                 }
                 return;
             case BINARYOP: // should only be assignment
@@ -321,14 +335,14 @@ class SemanticAnalyzer
                     }
                     typeError(String.format("expression before (?) operator is not boolean"));
                 }
-                else if (nodetype.attributes.get("type").equals("[]"))
+                else if (node.attributes.get("type").equals("[]"))
                 {
                     String vectype = this.verifyExpressionType(node.getChild(0));
                     if (vectype.equals("vec"))
                     {
                         String upperType = this.verifyExpressionType(node.getChild(1));
                         String lowerType = upperType;
-                        if (node.numChlidren() == 3)
+                        if (node.numChildren() == 3)
                             lowerType = this.verifyExpressionType(node.getChild(2));
                         if (isIntegral(upperType) && isIntegral(lowerType))
                         {
@@ -341,69 +355,70 @@ class SemanticAnalyzer
                 break;
             case BINARYOP:
                 String lhsType, rhsType;
-                if (!node.attributes.get("type").equals("."))
+                if (node.attributes.get("type").equals("."))
                 {
-                    lhsType = this.verifyExpressionType(node.getChild(0));
-                    rhsType = this.verifyExpressionType(node.getChild(1));
+                    String compinstID = node.getChild(0).attributes.get("name");
+                    String portID = node.getChild(1).attributes.get("name");
+                    for (DeclaredIdentifier subcomp : this.components.get(this.currentComponent).getSubcomponents())
+                    {
+                        if (subcomp.name.equals(compinstID))
+                        {
+                            for (DeclaredIdentifier port : this.components.get(subcomp.type).getPorts())
+                            {
+                                if (port.name.equals(portID))
+                                    return port.type;
+                            }
+                        }
+                    }
+                    // won't get here because there is a definition for compinstID.portID because declaredIDs have already been checked
                 }
+                lhsType = this.verifyExpressionType(node.getChild(0));
+                rhsType = this.verifyExpressionType(node.getChild(1));
                 switch (node.attributes.get("type"))
                 {
                     case "and": case "or": case "nand": case "nor": case "xor": case "xnor":
                         // bitise operator
-                        if (lefttype.equals("vec") && righttype.equals("vec"))
+                        if (lhsType.equals("vec") && rhsType.equals("vec"))
                             return "vec";
                         break;
                     case "<": case ">": case "<=": case ">=": case "==": case "!=":
                         // relational operator
-                        if (isNumeric(lefttype) && isNumeric(righttype))
+                        if (isNumeric(lhsType) && isNumeric(rhsType))
                             return "bool";
                         break;
                     case "+": case "-": case "*": case "/":
                         // arithmetic valid for vectors
-                        if (isNumeric(lefttype) && isNumeric(righttype))
-                            return lefttype;
+                        if (isNumeric(lhsType) && isNumeric(rhsType))
+                            return lhsType;
                         break;
                     case "%":
-                        if (isIntegral(lefttype) && isIntegral(righttype))
-                            return lefttype;
+                        if (isIntegral(lhsType) && isIntegral(rhsType))
+                            return lhsType;
                         break;
                     case "**":
-                        if (isNumeric(lefttype) && isIntegral(righttype))
-                            return lefttype;
+                        if (isNumeric(lhsType) && isIntegral(rhsType))
+                            return lhsType;
                         break;
                     case "&":
                         // boolean and
-                        if (lefttype.equals("bool") && righttype.equals("bool"))
-                            return lefttype;
+                        if (lhsType.equals("bool") && rhsType.equals("bool"))
+                            return lhsType;
                         // concatenation
-                        else if (lefttype.equals("vec") && righttype.equals("vec"))
-                            return lefttype;
+                        else if (lhsType.equals("vec") && rhsType.equals("vec"))
+                            return lhsType;
                         break;
                     case "^": case "|":
                         // boolean operator
-                        if (lefttype.equals("bool") && righttype.equals("bool"))
-                            return lefttype;
+                        if (lhsType.equals("bool") && rhsType.equals("bool"))
+                            return lhsType;
                         break;
                     case ".":
-                        String compinstID = node.getChild(0).attributes.get("name");
-                        String portID = node.getChild(1).attributes.get("name");
-                        for (DeclaredIdentifier subcomp : this.components.get(this.currentComponent).getSubcomponents())
-                        {
-                            if (subcomp.name.equals(compinstID))
-                            {
-                                for (DeclaredIdentifier port : this.components.get(subcomp.type).getPorts())
-                                {
-                                    if (port.name.equals(portID))
-                                        return port.type;
-                                }
-                            }
-                        }
-                        // won't get here because there is a definition for compinstID.portID because declaredIDs have already been checked
+                        // wut, how'd we get here
                 }
                 typeError(String.format("operator (%s) is undefined for types (%s) and (%s)", node.attributes.get("type"), lhsType, rhsType));
                 break;
             case UNARYOP:
-                String type = verifyExpression(node.getChild(0));
+                String type = this.verifyExpressionType(node.getChild(0));
                 switch (node.attributes.get("type"))
                 {
                     case "!":
@@ -425,7 +440,7 @@ class SemanticAnalyzer
             case IDENTIFIER:
                 String name = node.attributes.get("name");
                 Map<Nodetype, Set<DeclaredIdentifier>> declaredIDs = this.components.get(this.currentComponent).getDeclaredIdentifiers();
-                for (Nodetype n : declaredIDs.keys())
+                for (Nodetype n : declaredIDs.keySet())
                 {
                     if (n == Nodetype.SIGDEC || n == Nodetype.PORT || n == Nodetype.GENDEC || n == Nodetype.CONST)
                     {
@@ -478,7 +493,7 @@ class SemanticAnalyzer
         String source = "component C1{port{}arch{C2 c2 = new C2();C3 c3 = new C3();}}\n" + 
                         "component C2{port{}arch{C4 c3 = new C4();}}\n" +
                         "component C3{port{}arch{}}";
-        ComponentGraph cg = new ComponentGraph(source, "C1");
+        SemanticAnalyzer cg = new SemanticAnalyzer(source);
         System.out.println("Dependency test passed");
     }
 }
