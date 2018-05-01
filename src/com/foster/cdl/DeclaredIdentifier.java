@@ -20,13 +20,13 @@ public class DeclaredIdentifier
         this.declaration = declaration;
     }
 
-    @override
+    @Override
     public int hashCode()
     {
         return this.name.hashCode();
     }
 
-    @override
+    @Override
     public boolean equals(Object obj)
     {
         DeclaredIdentifier other = (DeclaredIdentifier) obj;
