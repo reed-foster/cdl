@@ -300,7 +300,7 @@ public class Parser
         }
         attributes.put("name", this.currenttok.value);
         this.eat(Tokentype.ID);
-        this.eat(Tokentype.ASSIGN);
+        this.eat(Tokentype.EQ);
         children.add(this.expression());
         this.eat(Tokentype.EOL);
         return new Tree(Nodetype.CONST, attributes, children);
