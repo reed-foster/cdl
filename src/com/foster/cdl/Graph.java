@@ -51,7 +51,7 @@ public class Graph
         if (!this.adjacencyList.get(idx1).contains(idx2))
         {
             this.adjacencyList.get(idx1).add(idx2); // if there isn't already an edge from vertex1 to vertex2, add it to the adjacency list
-            this.inDegrees.get(idx2)++; // increment the indegree of the "to" vertex
+            this.inDegrees.set(idx2, this.inDegrees.get(idx2) + 1); // increment the indegree of the "to" vertex
         }
     }
 
