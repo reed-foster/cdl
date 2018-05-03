@@ -206,6 +206,9 @@ public class Lexer
                 }
                 this.advance();
             }
+            // in case skipping whitespace put us at the end of the file
+            if (this.currentchar == 0)
+                break;
 
             // skip comments
             if (this.currentchar == '/' && this.peek() == '*')
