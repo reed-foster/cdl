@@ -381,7 +381,7 @@ class SemanticAnalyzer
                         if (lhsType.equals("vec") && rhsType.equals("vec"))
                             return "vec";
                         break;
-                    case "<": case ">": case "<=": case ">=": case "==": case "!=":
+                    case "<": case ">": case "<=": case ">=": case "=": case "!=":
                         // relational operator
                         if (isNumeric(lhsType) && isNumeric(rhsType))
                             return "bool";
