@@ -6,6 +6,9 @@ Stores all parsed components
 package com.foster.cdl;
 
 import java.util.*;
+import java.nio.file.*;
+import java.nio.charset.Charset;
+import java.io.*;
 
 public class VHDLGenerator
 {
@@ -244,7 +247,21 @@ public class VHDLGenerator
             case IDENTIFIER:
                 return node.attributes.get("name");
             case LITERAL:
-                return node.attributes.get("value");
+                String value = node.attributes.get("value");
+                switch (node.attributes.get("type"))
+                {
+                    case "DECINTLITERAL":
+                    case "BININTLITERAL":
+                    case "HEXINTLITERAL":
+                    case "BOOLLITERAL":
+                        return value;
+                    case "BINVECLITERAL":
+                        return "\"" + value + "\"";
+                    case "HEXVECLITERAL":
+                        return "x\"" + value + "\"";
+                    default:
+                        return "";
+                }
         }
         return "";
     }
@@ -295,15 +312,34 @@ public class VHDLGenerator
         return type;
     }
 
+    private static String readFile(String filename) throws IOException
+    {
+        byte[] encoded = Files.readAllBytes(Paths.get(filename));
+        return new String(encoded, Charset.defaultCharset());
+    }
+
     public static void main(String[] args)
     {
-        if (args.length != 1)
+        if (args.length < 1)
         {
-            System.out.println("Please supply a source");
+            System.out.println("Please supply at least one source");
             return;
         }
-        String source = args[0];
+        String source = "";
+        for (String arg : args)
+        {
+            try
+            {
+                source += readFile(arg) + "\n";
+            }
+            catch (IOException e)
+            {
+                System.out.println("Invalid filename");
+                return;
+            }
+        }
         VHDLGenerator gen = new VHDLGenerator(source);
+        System.out.println(source);
         System.out.println(gen.getVHDL());
     }
 }
