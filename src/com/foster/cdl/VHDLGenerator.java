@@ -36,6 +36,7 @@ public class VHDLGenerator
         {
             this.currentComponent = compname;
             Tree ast = this.components.get(compname).ast;
+            output += "library ieee;\nuse ieee.std_logic_1164.all;\nuse ieee.numeric_std.all;\n\n";
             output += this.componentInterfaces.get(compname) + "\n\n" + this.getArch(ast);
             output += "\n\n\n";
         }
@@ -296,46 +297,12 @@ public class VHDLGenerator
 
     public static void main(String[] args)
     {
-        String source = "component XorGate{"+
-                            "port{"+
-                                "input vec[1] a;"+
-                                "input vec[1] b;"+
-                                "output vec[1] sum;"+
-                            "}"+
-                            "arch{"+
-                                "sum <= a xor b;"+
-                            "}"+
-                        "}"+
-                        "component AndGate{"+
-                            "port{"+
-                                "input vec[1] a;"+
-                                "input vec[1] b;"+
-                                "output vec[1] prod;"+
-                            "}"+
-                            "arch{"+
-                                "prod <= a and b;"+
-                            "}"+
-                        "}"+
-                        "component HalfAdder{"+
-                            "port{"+
-                                "input vec[1] a;"+
-                                "input vec[1] b;"+
-                                "input vec[1] ci;"+
-                                "output vec[1] sum;"+
-                                "output vec[1] co;"+
-                            "}"+
-                            "arch{"+
-                                "XorGate XOR = new XorGate();"+
-                                "AndGate AND = new AndGate();"+
-                                "XOR.a <= a;"+
-                                "XOR.b <= b;"+
-                                "AND.a <= a;"+
-                                "AND.b <= b;"+
-                                "sum <= XOR.sum;"+
-                                "co <= AND.prod;"+
-                            "}"+
-                        "}";
-
+        if (args.length != 1)
+        {
+            System.out.println("Please supply a source");
+            return;
+        }
+        String source = args[0];
         VHDLGenerator gen = new VHDLGenerator(source);
         System.out.println(gen.getVHDL());
     }
