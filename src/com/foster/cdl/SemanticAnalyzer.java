@@ -40,14 +40,9 @@ class SemanticAnalyzer
             Component c = new Component(source.substring(start, end));
             this.components.put(c.name, c);
         } while (source.indexOf("component", end) != -1);
-        if (this.components.size() == 1)
-            this.topname = this.components.keySet().iterator().next();
-        else
-        {
-            this.orderDependencies(); // adds edges between each dependency in this.dependencyGraph
-            this.topname = this.dependencyGraph.rootVertex();
-            this.checkCyclicity();
-        }
+        this.orderDependencies(); // adds edges between each dependency in this.dependencyGraph
+        this.checkCyclicity();
+        this.topname = this.components.size() == 1 ? this.components.keySet().iterator().next() : this.dependencyGraph.rootVertex();
         this.verifyAllComponents();
     }
 
@@ -102,7 +97,7 @@ class SemanticAnalyzer
             {
                 String name = subcomponent.type;
                 if (!this.components.containsKey(name))
-                    nameError(String.format("no component declaration for %s found", name));
+                    nameError(String.format("no component declaration for (%s) found", name));
                 this.dependencyGraph.addEdge(component.name, name);
             }
         }
@@ -157,6 +152,9 @@ class SemanticAnalyzer
             {
                 if (subcomp.name.equals(compinstID))
                 {
+                    System.out.println(subcomp.type);
+                    System.out.println(this.components.keySet());
+                    System.out.println(this.components.get(subcomp.type));
                     for (DeclaredIdentifier port : this.components.get(subcomp.type).getPorts())
                     {
                         if (port.name.equals(portID))
