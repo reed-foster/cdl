@@ -12,7 +12,6 @@ public class VHDLGenerator
     private Map<String, Component> components;
     private Map<String, String> componentInterfaces;
     private Map<String, Set<DeclaredIdentifier>> tempSignals; // maps each component name to a set of declaredIdentifiers
-    private Map<String, Set<String>> usedPorts; // maps each component instance to a set of all ports that are used
 
     private String currentComponent;
 
@@ -22,7 +21,6 @@ public class VHDLGenerator
         this.components = s.getComponents();
         this.componentInterfaces = new HashMap<String, String>();
         this.tempSignals = new HashMap<String, Set<DeclaredIdentifier>>();
-        this.usedPorts = new HashMap<String, Set<String>>();
         this.getAllTempSignals();
     }
 
@@ -39,6 +37,7 @@ public class VHDLGenerator
             this.currentComponent = compname;
             Tree ast = this.components.get(compname).ast;
             output += this.componentInterfaces.get(compname) + "\n\n" + this.getArch(ast);
+            output += "\n\n\n";
         }
         return output;
     }
@@ -50,10 +49,6 @@ public class VHDLGenerator
             Component component = this.components.get(componentName);
             Set<DeclaredIdentifier> tempSignals = this.getTempSignals(componentName, component.ast);
             this.tempSignals.put(componentName, tempSignals);
-            Set<String> usedPorts = new HashSet<String>();
-            for (DeclaredIdentifier tempSignal : tempSignals)
-                usedPorts.add(tempSignal.name);
-            this.usedPorts.put(componentName, usedPorts);
         }
     }
 
@@ -72,7 +67,8 @@ public class VHDLGenerator
             String compinstID = node.getChild(0).attributes.get("name");
             String portID = node.getChild(1).attributes.get("name");
             attributes.put("compname", compinstID);
-            attributes.put("name", portID);
+            attributes.put("portname", portID);
+            attributes.put("name", compinstID + "_" + portID);
 
             for (DeclaredIdentifier subcomp : this.components.get(componentName).getSubcomponents())
             {
@@ -84,12 +80,11 @@ public class VHDLGenerator
                         {
                             attributes.put("type", port.type);
                             if (port.type.equals("vec"))
-                                children.add(node.getChild(0));
+                                children.add(port.declaration.getChild(0));
                         }
                     }
                 }
             }
-
             Tree declaration = new Tree(Nodetype.SIGDEC, attributes, children);
             sigDecs.add(new DeclaredIdentifier(declaration));
         }
@@ -173,11 +168,22 @@ public class VHDLGenerator
                             String instanceName = child.attributes.get("name");
                             Set<DeclaredIdentifier> ports = this.components.get(interfaceName).getPorts();
                             Set<DeclaredIdentifier> generics = this.components.get(interfaceName).getGenerics();
+                            Set<DeclaredIdentifier> tempSignals = this.tempSignals.get(this.currentComponent);
                             String portMap = "";
                             for (DeclaredIdentifier port : ports)
                             {
                                 portMap += port.name + " => ";
-                                portMap += this.usedPorts.get(instanceName).contains(port.name) ? instanceName + "_" + port.name : "open";
+                                String tempSignalName = instanceName + "_" + port.name;
+                                boolean containsPort = false; // true if the current component definition has a temp signal assigned to the current port on the current subcomponent instance
+                                for (DeclaredIdentifier tempSignal : tempSignals)
+                                {
+                                    if (tempSignal.name.equals(tempSignalName))
+                                    {
+                                        containsPort = true;
+                                        break;
+                                    }
+                                }
+                                portMap += containsPort ? tempSignalName : "open";
                                 portMap += ",\n";
                             }
                             String genericMap = "";
@@ -185,9 +191,9 @@ public class VHDLGenerator
                             {
                                 genericMap += this.visit(genericAssign.getChild(0)) + " => " + this.visit(genericAssign.getChild(1)) + ",\n";
                             }
-                            portMap = portMap.length() > 0 ? "port map\n(\n" + portMap.substring(0, portMap.length() - 2) + "\n)\n" : "";
+                            portMap = portMap.length() > 0 ? "port map\n(\n" + indent(portMap.substring(0, portMap.length() - 2)) + "\n)" : "";
                             genericMap = genericMap.length() > 0 ? "generic map\n(\n" + genericMap.substring(0, genericMap.length() - 2) + "\n)\n" : "";
-                            assignments += instanceName + " : " + interfaceName + "\n" + genericMap + portMap + ";\n";
+                            assignments += instanceName + " : " + interfaceName + "\n" + indent(genericMap + portMap + ";") + "\n";
                             break;
                         case SIGDEC:
                         case CONST:
@@ -203,7 +209,7 @@ public class VHDLGenerator
                 }
                 for (DeclaredIdentifier tempSignal : this.tempSignals.get(this.currentComponent))
                 {
-                    declarations += "signal " + tempSignal.declaration.attributes.get("compname") + "_" + tempSignal.name + " : " + this.getType(tempSignal.declaration);
+                    declarations += "signal " + tempSignal.name + " : " + this.getType(tempSignal.declaration) + ";\n";
                 }
                 return "architecture structural of " + this.currentComponent + " is\n" + indent(declarations) + "\nbegin\n" + indent(assignments) + "\nend structural;";
             case SIGDEC:
@@ -224,7 +230,9 @@ public class VHDLGenerator
                 String sep = node.attributes.get("type");
                 if (sep.equals("."))
                     sep = "_";
-                return this.visit(node.getChild(0)) + " " + sep + " " + this.visit(node.getChild(1));
+                else
+                    sep = " " + sep + " ";
+                return this.visit(node.getChild(0)) + sep + this.visit(node.getChild(1));
             case UNARYOP:
                 if (node.attributes.get("type").equals("()"))
                     return "(" + this.visit(node.getChild(0)) + ")";
