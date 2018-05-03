@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if ! [ -z $1 ]
+then
+  java -cp ~/git/cdl/bin com.foster.cdl.VHDLGenerator "$(< $1)"
+else
+  echo "please specify a source file"
+fi
