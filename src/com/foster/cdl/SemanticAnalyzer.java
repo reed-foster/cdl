@@ -31,6 +31,8 @@ class SemanticAnalyzer
     {
         this.dependencyGraph = new Graph();
         this.components = new HashMap<String, Component>();
+        this.hasPortDec = new HashMap<String, Boolean>();
+        this.hasArchDec = new HashMap<String, Boolean>();
         // split multiple component definitions
         int start = 0;
         int end = 0;
@@ -203,9 +205,6 @@ class SemanticAnalyzer
             {
                 if (subcomp.name.equals(compinstID))
                 {
-                    System.out.println(subcomp.type);
-                    System.out.println(this.components.keySet());
-                    System.out.println(this.components.get(subcomp.type));
                     for (DeclaredIdentifier port : this.components.get(subcomp.type).getPorts())
                     {
                         if (port.name.equals(portID))
