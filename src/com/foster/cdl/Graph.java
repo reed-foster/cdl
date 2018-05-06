@@ -23,10 +23,10 @@ public class Graph
     }
 
     /**
+    * Adds a new edge to the graph, adding new vertices if necessary
     * edge configuration: verex1 -> vertex2
     * @param vertex1 String name of "from" vertex
     * @param vertex2 String name of "to" vertex
-    * 
     */
     public void addEdge(String vertex1, String vertex2)
     {
@@ -55,6 +55,10 @@ public class Graph
         }
     }
 
+    /**
+    * Finds the root vertex of the graph, based on indegrees (if multiple vertices have indegree 0, then return the name of the first one added to the graph)
+    * @return String name of root vertex (or empty string if no root found - not possible for a DAG)
+    */
     public String rootVertex()
     {
         for (int i = 0; i < this.vertices; i++)
@@ -65,6 +69,10 @@ public class Graph
         return "";
     }
 
+    /**
+    * Determines cyclicity of the graph
+    * @return true if graph has no cycles, false otherwise
+    */
     public boolean acyclic()
     {
         boolean[] visited = new boolean[this.vertices];
@@ -82,6 +90,13 @@ public class Graph
         return true;
     }
 
+    /**
+    * Helper method for acyclic; recursively visits each subtree and checks to see if the root node is visited and on the recursion stack
+    * @param vertex int vertex at which to start search
+    * @param visited boolean[] containing list of visited nodes
+    * @param recStack boolean[] containing list of nodes that are on the recursion stack
+    * @return true if a cycle is found, false otherwise
+    */
     private boolean cyclicUtil(int vertex, boolean[] visited, boolean[] recStack)
     {
         visited[vertex] = true;
