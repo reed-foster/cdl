@@ -16,6 +16,8 @@ class SemanticAnalyzer
 {
     private Graph dependencyGraph;
     private Map<String, Component> components;
+    private Map<String, Boolean> hasPortDec;
+    private Map<String, Boolean> hasArchDec;
     private String topname;
 
     // for use with type-checking, keeps track of which component the current syntax tree being processed belongs to
@@ -39,6 +41,8 @@ class SemanticAnalyzer
             end = end == -1 ? source.length() - 1 : end;
             Component c = new Component(source.substring(start, end));
             this.components.put(c.name, c);
+            this.hasPortDec.put(c.name, false);
+            this.hasArchDec.put(c.name, false);
         } while (source.indexOf("component", end) != -1);
         this.orderDependencies(); // adds edges between each dependency in this.dependencyGraph
         this.checkCyclicity();
@@ -80,6 +84,24 @@ class SemanticAnalyzer
     private static void genericError(String message) throws GenericError
     {
         throw new GenericError(message);
+    }
+
+    /**
+    * Wrapper method for throwing PortErrors
+    * @param message String message to be printed
+    */
+    private static void portError(String message) throws PortError
+    {
+        throw new PortError(message);
+    }
+
+    /**
+    * Wrapper method for throwing ArchErrors
+    * @param message String message to be printed
+    */
+    private static void archError(String message) throws ArchError
+    {
+        throw new ArchError(message);
     }
 
     /**
@@ -131,9 +153,38 @@ class SemanticAnalyzer
         for (Component component : this.components.values())
         {
             this.currentComponent = component.name;
+            this.verifyPortArch(component.ast);
             this.verifyIdentifiers(component.ast);
             this.verifyConstantExpressions(component.ast);
             this.verifyTypes(component.ast);
+        }
+    }
+
+    /**
+    * Verifies that there are no duplicate port or architecture definitions in a component
+    * @param node Tree reference to subtree to be checked; called on root node of component ast
+    * @throws PortError if duplicate port statements are found, ArchError if duplicate arch statements are found
+    */
+    private void verifyPortArch(Tree node)
+    {
+        if (node.nodetype == Nodetype.PORTDEC)
+        {
+            if (this.hasPortDec.get(this.currentComponent))
+                portError(String.format("multiple port definitions found in component (%s)", this.currentComponent));
+            else
+                this.hasPortDec.put(this.currentComponent, true);
+        }
+        else if (node.nodetype == Nodetype.ARCH)
+        {
+            if (this.hasArchDec.get(this.currentComponent))
+                archError(String.format("multiple arch definitions found in component (%s)", this.currentComponent));
+            else
+                this.hasArchDec.put(this.currentComponent, true);
+        }
+        else
+        {
+            for (Tree child : node.getChildren())
+                this.verifyPortArch(child);
         }
     }
 
