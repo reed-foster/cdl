@@ -1,14 +1,11 @@
 /*
 VHDLGenerator.java - Reed Foster
-Stores all parsed components
+Generates VHDL from parsed components
 */
 
 package com.foster.cdl;
 
 import java.util.*;
-import java.nio.file.*;
-import java.nio.charset.Charset;
-import java.io.*;
 
 public class VHDLGenerator
 {
@@ -50,17 +47,18 @@ public class VHDLGenerator
     {
         for (String componentName : this.components.keySet())
         {
+            this.currentComponent = componentName;
             Component component = this.components.get(componentName);
-            Set<DeclaredIdentifier> tempSignals = this.getTempSignals(componentName, component.ast);
+            Set<DeclaredIdentifier> tempSignals = this.getTempSignals(component.ast);
             this.tempSignals.put(componentName, tempSignals);
         }
     }
 
     /**
     * Creates a Set of DeclaredIdentifiers for all subcomponent ports that are used as signals
-    *
+    * @param node Tree reference to root node of component ast
     */
-    private Set<DeclaredIdentifier> getTempSignals(String componentName, Tree node)
+    private Set<DeclaredIdentifier> getTempSignals(Tree node)
     {
         Set<DeclaredIdentifier> sigDecs = new HashSet<DeclaredIdentifier>();
         if (node.nodetype == Nodetype.BINARYOP && node.attributes.get("type").equals("."))
@@ -74,7 +72,7 @@ public class VHDLGenerator
             attributes.put("portname", portID);
             attributes.put("name", compinstID + "_" + portID);
 
-            for (DeclaredIdentifier subcomp : this.components.get(componentName).getSubcomponents())
+            for (DeclaredIdentifier subcomp : this.components.get(this.currentComponent).getSubcomponents())
             {
                 if (subcomp.name.equals(compinstID))
                 {
@@ -96,12 +94,16 @@ public class VHDLGenerator
         {
             for (Tree child : node.getChildren())
             {
-                sigDecs.addAll(this.getTempSignals(componentName, child));
+                sigDecs.addAll(this.getTempSignals(child));
             }
         }
         return sigDecs;
     }
 
+    /**
+    * Gets the entity definition of a component
+    * @param node Tree reference to root node of component ast
+    */
     private String getEntity(Tree node)
     {
         if (node.nodetype != Nodetype.COMPONENT)
@@ -135,6 +137,10 @@ public class VHDLGenerator
         return entity;
     }
 
+    /**
+    * Gets the architecture definition of a component
+    * @param node Tree reference to root node of component ast
+    */
     private String getArch(Tree node)
     {
         String arch = "";
@@ -148,7 +154,10 @@ public class VHDLGenerator
         return arch;
     }
 
-    // should only be called on Arch (need to refactor names)
+    /**
+    * Recursively visits subtrees, generating vhdl (note, this method must be called with a node of type Nodetype.ARCH, not Nodetype.COMPONENT)
+    * @param node Tree reference to root node of architecture subtree of component ast
+    */
     private String visit(Tree node)
     {
         switch (node.nodetype)
@@ -211,6 +220,7 @@ public class VHDLGenerator
                             break;
                     }
                 }
+                // add temp signal declarations
                 for (DeclaredIdentifier tempSignal : this.tempSignals.get(this.currentComponent))
                 {
                     declarations += "signal " + tempSignal.name + " : " + this.getType(tempSignal.declaration) + ";\n";
@@ -266,11 +276,20 @@ public class VHDLGenerator
         return "";
     }
 
+    /**
+    * Overloaded indent method, assumes default of 4 spaces for indentation
+    * @param str String to be indented
+    */
     private static String indent(String str)
     {
         return indent(str, 4);
     }
 
+    /**
+    * Utility for indenting strings
+    * @param str String to be indented
+    * @param spaces int number of spaces to use for indentation
+    */
     private static String indent(String str, int spaces)
     {
         String indentStr = new String(new char[spaces]).replace("\0", " ");
@@ -281,6 +300,10 @@ public class VHDLGenerator
         return result.substring(0, result.length() - 1);
     }
 
+    /**
+    * Gets the VHDL type given cdl type
+    * @param node Tree reference to node with an attributes map containing a "type" key (some sort of declaration - e.g. sigdec, port, const, etc.)
+    */
     private String getType(Tree node)
     {
         String type;
@@ -310,36 +333,5 @@ public class VHDLGenerator
                 break;
         }
         return type;
-    }
-
-    private static String readFile(String filename) throws IOException
-    {
-        byte[] encoded = Files.readAllBytes(Paths.get(filename));
-        return new String(encoded, Charset.defaultCharset());
-    }
-
-    public static void main(String[] args)
-    {
-        if (args.length < 1)
-        {
-            System.out.println("Please supply at least one source");
-            return;
-        }
-        String source = "";
-        for (String arg : args)
-        {
-            try
-            {
-                source += readFile(arg) + "\n";
-            }
-            catch (IOException e)
-            {
-                System.out.println("Invalid filename");
-                return;
-            }
-        }
-        VHDLGenerator gen = new VHDLGenerator(source);
-        System.out.println(source);
-        System.out.println(gen.getVHDL());
     }
 }
