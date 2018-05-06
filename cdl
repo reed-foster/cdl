@@ -2,7 +2,7 @@
 
 if ! [ -z $1 ]
 then
-  java -cp ./bin com.foster.cdl.VHDLGenerator "$@"
+  java -cp ./bin com.foster.cdl.CDL "$@"
 else
   echo "please specify at least one source file"
 fi
