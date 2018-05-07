@@ -17,4 +17,4 @@ CDL opens each file and appends its contents to a list of components to parse an
 
 ## Specification
 
-Check out the BNF specification for CDL [here](grammar.ebnf). This specification is richer than the implemented compiler, as I ran out of time/energy to implement all the features I originally set out to have (most notably generate and process statements; both very important paradigms)
+Check out the BNF specification for CDL [here](doc/grammar.ebnf). This specification is richer than the implemented compiler, as I ran out of time/energy to implement all the features I originally set out to have (most notably generate and process statements; both very important paradigms)
